@@ -41,6 +41,8 @@ class ReservationsController {
     final budgetSectionId = request.url.queryParameters['budget_section_id'];
     final fundingId = request.url.queryParameters['funding_id'];
     final executionStatus = request.url.queryParameters['execution_status'];
+    final dateFrom = request.url.queryParameters['date_from'];
+    final dateTo = request.url.queryParameters['date_to'];
     final page = int.tryParse(request.url.queryParameters['page'] ?? '1') ?? 1;
     final pageSize =
         int.tryParse(request.url.queryParameters['page_size'] ?? '10') ?? 10;
@@ -57,6 +59,8 @@ class ReservationsController {
       executionStatus: executionStatus?.isEmpty == true
           ? null
           : executionStatus,
+      dateFrom: dateFrom?.isEmpty == true ? null : dateFrom,
+      dateTo: dateTo?.isEmpty == true ? null : dateTo,
       page: page < 1 ? 1 : page,
       pageSize: pageSize < 1 ? 10 : pageSize,
     );

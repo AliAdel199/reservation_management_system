@@ -16,6 +16,8 @@ class ExpensesRepository {
     required String? reservationId,
     required String? programId,
     required String? budgetSectionId,
+    required String? dateFrom,
+    required String? dateTo,
     required int page,
     required int pageSize,
   }) async {
@@ -31,6 +33,8 @@ class ExpensesRepository {
           AND (@reservation_id = '' OR e.reservation_id = @reservation_id::uuid)
           AND (@program_id = '' OR r.program_id = @program_id::uuid)
           AND (@budget_section_id = '' OR r.budget_section_id = @budget_section_id::uuid)
+          AND (@date_from = '' OR e.expense_date >= @date_from::date)
+          AND (@date_to = '' OR e.expense_date <= @date_to::date)
           AND (
             @search = ''
             OR LOWER(e.expense_number) LIKE LOWER(@pattern)
@@ -42,6 +46,8 @@ class ExpensesRepository {
         'reservation_id': reservationId ?? '',
         'program_id': programId ?? '',
         'budget_section_id': budgetSectionId ?? '',
+        'date_from': dateFrom ?? '',
+        'date_to': dateTo ?? '',
         'search': normalizedSearch,
         'pattern': '%$normalizedSearch%',
       },
@@ -74,6 +80,8 @@ class ExpensesRepository {
           AND (@reservation_id = '' OR e.reservation_id = @reservation_id::uuid)
           AND (@program_id = '' OR r.program_id = @program_id::uuid)
           AND (@budget_section_id = '' OR r.budget_section_id = @budget_section_id::uuid)
+          AND (@date_from = '' OR e.expense_date >= @date_from::date)
+          AND (@date_to = '' OR e.expense_date <= @date_to::date)
           AND (
             @search = ''
             OR LOWER(e.expense_number) LIKE LOWER(@pattern)
@@ -88,6 +96,8 @@ class ExpensesRepository {
         'reservation_id': reservationId ?? '',
         'program_id': programId ?? '',
         'budget_section_id': budgetSectionId ?? '',
+        'date_from': dateFrom ?? '',
+        'date_to': dateTo ?? '',
         'search': normalizedSearch,
         'pattern': '%$normalizedSearch%',
         'limit': pageSize,
@@ -320,16 +330,116 @@ class ExpensesRepository {
     );
   }
 
+  Future<void> balanceReservationHold({
+    required Session session,
+    required String reservationId,
+    required String fundingId,
+    required String programId,
+    required String budgetSectionId,
+    required String? fiscalYearId,
+    required String? budgetTypeId,
+    required String createdBy,
+    required double targetHoldAmount,
+    required String description,
+  }) async {
+    final result = await session.execute(
+      Sql.named('''
+        SELECT COALESCE(SUM(
+          CASE
+            WHEN transaction_type::text = 'reservation_hold' THEN amount
+            WHEN transaction_type::text IN ('reservation_release', 'reservation_cancel') THEN -amount
+            ELSE 0
+          END
+        ), 0) AS current_hold
+        FROM financial_transactions
+        WHERE reservation_id = @reservation_id::uuid
+      '''),
+      parameters: {'reservation_id': reservationId},
+    );
+
+    final currentHold = _toDouble(result.first[0]);
+    final difference = currentHold - targetHoldAmount;
+    if (difference.abs() < 0.01) return;
+
+    final isRelease = difference > 0;
+    final amount = difference.abs();
+    await session.execute(
+      Sql.named('''
+        INSERT INTO financial_transactions (
+          id,
+          transaction_number,
+          transaction_type,
+          reference_type,
+          amount,
+          direction,
+          description,
+          reference_table,
+          reference_id,
+          program_id,
+          budget_section_id,
+          section_id,
+          funding_id,
+          reservation_id,
+          fiscal_year_id,
+          budget_type_id,
+          created_by
+        ) VALUES (
+          @id,
+          @transaction_number,
+          @transaction_type::transaction_type,
+          'reservations',
+          @amount,
+          @direction::transaction_direction,
+          @description,
+          'reservations',
+          @reservation_id::uuid,
+          @program_id::uuid,
+          @budget_section_id::uuid,
+          @budget_section_id::uuid,
+          @funding_id::uuid,
+          @reservation_id::uuid,
+          NULLIF(@fiscal_year_id, '')::uuid,
+          NULLIF(@budget_type_id, '')::uuid,
+          @created_by::uuid
+        )
+      '''),
+      parameters: {
+        'id': _uuid.v4(),
+        'transaction_number':
+            '${isRelease ? 'RR' : 'RH'}-${DateTime.now().millisecondsSinceEpoch}-${_uuid.v4().substring(0, 8)}',
+        'transaction_type': isRelease
+            ? 'reservation_release'
+            : 'reservation_hold',
+        'direction': isRelease ? 'IN' : 'OUT',
+        'amount': amount,
+        'description': description,
+        'reservation_id': reservationId,
+        'program_id': programId,
+        'budget_section_id': budgetSectionId,
+        'funding_id': fundingId,
+        'fiscal_year_id': fiscalYearId ?? '',
+        'budget_type_id': budgetTypeId ?? '',
+        'created_by': createdBy,
+      },
+    );
+  }
+
   Future<void> updateReservationStatus({
     required Session session,
     required String reservationId,
     required String status,
     required String updatedBy,
+    String? closedAt,
+    bool clearClosedAt = false,
   }) async {
     await session.execute(
       Sql.named('''
         UPDATE reservations
         SET workflow_status = @status::reservation_status,
+            closed_at = CASE
+              WHEN @clear_closed_at THEN NULL
+              ELSE COALESCE(NULLIF(@closed_at, '')::timestamptz, closed_at)
+            END,
             updated_by = @updated_by::uuid
         WHERE id = @reservation_id::uuid
           AND deleted_at IS NULL
@@ -338,6 +448,8 @@ class ExpensesRepository {
         'reservation_id': reservationId,
         'status': status,
         'updated_by': updatedBy,
+        'closed_at': closedAt ?? '',
+        'clear_closed_at': clearClosedAt,
       },
     );
   }
@@ -363,5 +475,10 @@ class ExpensesRepository {
         'cancel_reason': reason,
       },
     );
+  }
+
+  double _toDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '0') ?? 0;
   }
 }

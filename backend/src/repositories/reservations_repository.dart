@@ -11,7 +11,7 @@ class ReservationsRepository {
   static const _uuid = Uuid();
 
   static const _reservationFinancialCte = '''
-    WITH allocation_fallback AS (
+    WITH RECURSIVE allocation_fallback AS (
       SELECT
         f.budget_section_id AS section_id,
         COALESCE(SUM(f.allocated_amount), 0) AS total_allocation
@@ -77,6 +77,8 @@ class ReservationsRepository {
     required String? budgetSectionId,
     required String? fundingId,
     required String? executionStatus,
+    required String? dateFrom,
+    required String? dateTo,
     required int page,
     required int pageSize,
   }) async {
@@ -85,7 +87,17 @@ class ReservationsRepository {
 
     final totalResult = await session.execute(
       Sql.named('''
-        $_reservationFinancialCte
+        $_reservationFinancialCte,
+        selected_section_descendants AS (
+          SELECT NULLIF(@budget_section_id, '')::uuid AS section_id
+          WHERE @budget_section_id <> ''
+          UNION ALL
+          SELECT child.id AS section_id
+          FROM budget_sections child
+          INNER JOIN selected_section_descendants parent
+            ON child.parent_id = parent.section_id
+          WHERE child.deleted_at IS NULL
+        )
         SELECT COUNT(*)
         FROM reservations r
         LEFT JOIN expense_totals et ON et.reservation_id = r.id
@@ -94,17 +106,25 @@ class ReservationsRepository {
           AND (
             @status = ''
             OR (@status = 'reserved' AND r.workflow_status::text IN ('draft', 'under_review'))
-            OR (@status = 'spent' AND r.workflow_status::text IN ('partially_spent', 'fully_spent', 'completed'))
+            OR (@status = 'spent' AND r.workflow_status::text IN ('partially_spent', 'fully_spent', 'completed', 'closed'))
             OR r.workflow_status::text = @status
           )
           AND (@program_id = '' OR r.program_id = @program_id::uuid)
-          AND (@budget_section_id = '' OR r.budget_section_id = @budget_section_id::uuid)
+          AND (
+            @budget_section_id = ''
+            OR r.budget_section_id IN (
+              SELECT section_id FROM selected_section_descendants
+            )
+          )
           AND (@funding_id = '' OR r.funding_id = @funding_id::uuid)
+          AND (@date_from = '' OR r.reservation_date >= @date_from::date)
+          AND (@date_to = '' OR r.reservation_date <= @date_to::date)
           AND (
             @execution_status = ''
             OR (
               CASE
                 WHEN r.workflow_status::text = 'cancelled' THEN 'cancelled'
+                WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed') THEN 'executed'
                 WHEN COALESCE(et.spent_amount, 0) <= 0 THEN 'not_executed'
                 WHEN COALESCE(et.spent_amount, 0) >= r.reserved_amount THEN 'executed'
                 ELSE 'partially_executed'
@@ -126,6 +146,8 @@ class ReservationsRepository {
         'budget_section_id': budgetSectionId ?? '',
         'funding_id': fundingId ?? '',
         'execution_status': executionStatus ?? '',
+        'date_from': dateFrom ?? '',
+        'date_to': dateTo ?? '',
         'search': normalizedSearch,
         'pattern': '%$normalizedSearch%',
       },
@@ -133,7 +155,17 @@ class ReservationsRepository {
 
     final itemsResult = await session.execute(
       Sql.named('''
-        $_reservationFinancialCte
+        $_reservationFinancialCte,
+        selected_section_descendants AS (
+          SELECT NULLIF(@budget_section_id, '')::uuid AS section_id
+          WHERE @budget_section_id <> ''
+          UNION ALL
+          SELECT child.id AS section_id
+          FROM budget_sections child
+          INNER JOIN selected_section_descendants parent
+            ON child.parent_id = parent.section_id
+          WHERE child.deleted_at IS NULL
+        )
         SELECT
           r.id,
           r.reservation_number,
@@ -160,9 +192,13 @@ class ReservationsRepository {
           r.closed_at,
           COALESCE(sb.available_balance, 0) AS funding_available_balance,
           COALESCE(et.spent_amount, 0) AS spent_amount,
-          GREATEST(r.reserved_amount - COALESCE(et.spent_amount, 0), 0) AS remaining_amount,
+          CASE
+            WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed', 'cancelled') THEN 0
+            ELSE GREATEST(r.reserved_amount - COALESCE(et.spent_amount, 0), 0)
+          END AS remaining_amount,
           CASE
             WHEN r.workflow_status::text = 'cancelled' THEN 'cancelled'
+            WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed') THEN 'executed'
             WHEN COALESCE(et.spent_amount, 0) <= 0 THEN 'not_executed'
             WHEN COALESCE(et.spent_amount, 0) >= r.reserved_amount THEN 'executed'
             ELSE 'partially_executed'
@@ -178,17 +214,25 @@ class ReservationsRepository {
           AND (
             @status = ''
             OR (@status = 'reserved' AND r.workflow_status::text IN ('draft', 'under_review'))
-            OR (@status = 'spent' AND r.workflow_status::text IN ('partially_spent', 'fully_spent', 'completed'))
+            OR (@status = 'spent' AND r.workflow_status::text IN ('partially_spent', 'fully_spent', 'completed', 'closed'))
             OR r.workflow_status::text = @status
           )
           AND (@program_id = '' OR r.program_id = @program_id::uuid)
-          AND (@budget_section_id = '' OR r.budget_section_id = @budget_section_id::uuid)
+          AND (
+            @budget_section_id = ''
+            OR r.budget_section_id IN (
+              SELECT section_id FROM selected_section_descendants
+            )
+          )
           AND (@funding_id = '' OR r.funding_id = @funding_id::uuid)
+          AND (@date_from = '' OR r.reservation_date >= @date_from::date)
+          AND (@date_to = '' OR r.reservation_date <= @date_to::date)
           AND (
             @execution_status = ''
             OR (
               CASE
                 WHEN r.workflow_status::text = 'cancelled' THEN 'cancelled'
+                WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed') THEN 'executed'
                 WHEN COALESCE(et.spent_amount, 0) <= 0 THEN 'not_executed'
                 WHEN COALESCE(et.spent_amount, 0) >= r.reserved_amount THEN 'executed'
                 ELSE 'partially_executed'
@@ -213,6 +257,8 @@ class ReservationsRepository {
         'budget_section_id': budgetSectionId ?? '',
         'funding_id': fundingId ?? '',
         'execution_status': executionStatus ?? '',
+        'date_from': dateFrom ?? '',
+        'date_to': dateTo ?? '',
         'search': normalizedSearch,
         'pattern': '%$normalizedSearch%',
         'limit': pageSize,
@@ -260,9 +306,13 @@ class ReservationsRepository {
           r.closed_at,
           COALESCE(sb.available_balance, 0) AS funding_available_balance,
           COALESCE(et.spent_amount, 0) AS spent_amount,
-          GREATEST(r.reserved_amount - COALESCE(et.spent_amount, 0), 0) AS remaining_amount,
+          CASE
+            WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed', 'cancelled') THEN 0
+            ELSE GREATEST(r.reserved_amount - COALESCE(et.spent_amount, 0), 0)
+          END AS remaining_amount,
           CASE
             WHEN r.workflow_status::text = 'cancelled' THEN 'cancelled'
+            WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed') THEN 'executed'
             WHEN COALESCE(et.spent_amount, 0) <= 0 THEN 'not_executed'
             WHEN COALESCE(et.spent_amount, 0) >= r.reserved_amount THEN 'executed'
             ELSE 'partially_executed'
@@ -318,9 +368,13 @@ class ReservationsRepository {
           r.closed_at,
           COALESCE(sb.available_balance, 0) AS funding_available_balance,
           COALESCE(et.spent_amount, 0) AS spent_amount,
-          GREATEST(r.reserved_amount - COALESCE(et.spent_amount, 0), 0) AS remaining_amount,
+          CASE
+            WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed', 'cancelled') THEN 0
+            ELSE GREATEST(r.reserved_amount - COALESCE(et.spent_amount, 0), 0)
+          END AS remaining_amount,
           CASE
             WHEN r.workflow_status::text = 'cancelled' THEN 'cancelled'
+            WHEN r.workflow_status::text IN ('completed', 'fully_spent', 'closed') THEN 'executed'
             WHEN COALESCE(et.spent_amount, 0) <= 0 THEN 'not_executed'
             WHEN COALESCE(et.spent_amount, 0) >= r.reserved_amount THEN 'executed'
             ELSE 'partially_executed'

@@ -33,6 +33,8 @@ class ExpensesController {
       budgetSectionId: _emptyToNull(
         request.url.queryParameters['budget_section_id'],
       ),
+      dateFrom: _emptyToNull(request.url.queryParameters['date_from']),
+      dateTo: _emptyToNull(request.url.queryParameters['date_to']),
       page: int.tryParse(request.url.queryParameters['page'] ?? '1') ?? 1,
       pageSize:
           int.tryParse(request.url.queryParameters['page_size'] ?? '10') ?? 10,
@@ -122,16 +124,29 @@ class ExpensesController {
       );
 
       final newSpentAmount = spentAmount + payload.amount;
-      // تعليق عربي: نبقي الحجز "معتمد" طالما يوجد متبقي قابل للصرف،
-      // ويتحول إلى "مصروف" عند اكتمال صرف كامل مبلغ الحجز.
-      final newStatus = newSpentAmount >= reservedAmount
-          ? 'completed'
-          : 'approved';
+      // تعليق عربي: عند الصرف من الحجز نغلق دورة الحجز مالياً.
+      // إذا كان الصرف أقل من المحجوز، نحرر المتبقي من المحجوز فقط ولا نلمس التخصيص السنوي.
+      await _expensesRepository.balanceReservationHold(
+        session: session,
+        reservationId: payload.reservationId,
+        fundingId: reservation['funding_id'].toString(),
+        programId: reservation['program_id'].toString(),
+        budgetSectionId: reservation['budget_section_id'].toString(),
+        fiscalYearId: reservation['fiscal_year_id']?.toString(),
+        budgetTypeId: reservation['budget_type_id']?.toString(),
+        createdBy: user.id,
+        targetHoldAmount: newSpentAmount,
+        description:
+            'Release unused reservation hold after expense '
+            '${expense.expenseNumber}.',
+      );
+
       await _expensesRepository.updateReservationStatus(
         session: session,
         reservationId: payload.reservationId,
-        status: newStatus,
+        status: 'completed',
         updatedBy: user.id,
+        closedAt: DateTime.now().toUtc().toIso8601String(),
       );
 
       await _auditService.log(
@@ -232,14 +247,29 @@ class ExpensesController {
             0,
             reservedAmount,
           );
-      final newStatus = spentAfterCancel >= reservedAmount
-          ? 'completed'
-          : 'approved';
+      final targetHoldAfterCancel = spentAfterCancel > 0
+          ? spentAfterCancel.toDouble()
+          : reservedAmount;
+      await _expensesRepository.balanceReservationHold(
+        session: session,
+        reservationId: current.reservationId,
+        fundingId: reservation['funding_id'].toString(),
+        programId: reservation['program_id'].toString(),
+        budgetSectionId: reservation['budget_section_id'].toString(),
+        fiscalYearId: reservation['fiscal_year_id']?.toString(),
+        budgetTypeId: reservation['budget_type_id']?.toString(),
+        createdBy: user.id,
+        targetHoldAmount: targetHoldAfterCancel,
+        description: 'Rebalance reservation hold after cancelling expense.',
+      );
+
+      final newStatus = spentAfterCancel > 0 ? 'completed' : 'approved';
       await _expensesRepository.updateReservationStatus(
         session: session,
         reservationId: current.reservationId,
         status: newStatus,
         updatedBy: user.id,
+        clearClosedAt: newStatus == 'approved',
       );
 
       final updated = await _expensesRepository.findById(session, id);

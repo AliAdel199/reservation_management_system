@@ -64,3 +64,50 @@ class DashboardBalanceAlert {
     };
   }
 }
+
+class DashboardSectionCard {
+  const DashboardSectionCard({
+    required this.sectionId,
+    required this.programId,
+    required this.programName,
+    required this.sectionCode,
+    required this.sectionName,
+    required this.sectionPath,
+    required this.totalAllocation,
+    required this.totalReserved,
+    required this.totalSpent,
+    required this.remainingBalance,
+    required this.childrenCount,
+    required this.postableChildrenCount,
+  });
+
+  final String sectionId;
+  final String programId;
+  final String programName;
+  final String sectionCode;
+  final String sectionName;
+  final String sectionPath;
+  final double totalAllocation;
+  final double totalReserved;
+  final double totalSpent;
+  final double remainingBalance;
+  final int childrenCount;
+  final int postableChildrenCount;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'section_id': sectionId,
+      'program_id': programId,
+      'program_name': programName,
+      'section_code': sectionCode,
+      'section_name': sectionName,
+      'section_path': sectionPath,
+      'total_allocation': totalAllocation,
+      'total_reserved': totalReserved,
+      'total_spent': totalSpent,
+      'remaining_balance': remainingBalance,
+      'children_count': childrenCount,
+      'postable_children_count': postableChildrenCount,
+    };
+  }
+}

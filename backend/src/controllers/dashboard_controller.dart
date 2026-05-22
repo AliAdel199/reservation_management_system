@@ -49,4 +49,26 @@ class DashboardController {
       data: {'items': alerts.map((alert) => alert.toJson()).toList()},
     );
   }
+
+  Future<Response> sectionCards(Request request) async {
+    final fiscalYearId = request.url.queryParameters['fiscal_year_id'];
+    final level = int.tryParse(request.url.queryParameters['level'] ?? '') ?? 3;
+    final limit =
+        int.tryParse(request.url.queryParameters['limit'] ?? '') ?? 12;
+
+    final cards = await _dashboardRepository.fetchSectionCards(
+      _database.connection,
+      fiscalYearId: fiscalYearId == null || fiscalYearId.trim().isEmpty
+          ? null
+          : fiscalYearId.trim(),
+      level: level,
+      limit: limit,
+    );
+
+    return jsonResponse(
+      200,
+      message: 'Dashboard section cards retrieved successfully.',
+      data: {'items': cards.map((card) => card.toJson()).toList()},
+    );
+  }
 }

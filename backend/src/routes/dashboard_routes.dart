@@ -17,4 +17,12 @@ void registerDashboardRoutes(
     '/api/dashboard/alerts',
     protectedRoute(jwtService, controller.alerts),
   );
+  router.get(
+    '/api/dashboard/level-three-sections',
+    protectedRoute(jwtService, controller.sectionCards),
+  );
+  router.get(
+    '/api/dashboard/section-cards',
+    protectedRoute(jwtService, controller.sectionCards),
+  );
 }
