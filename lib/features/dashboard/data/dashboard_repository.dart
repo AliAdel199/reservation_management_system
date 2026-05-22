@@ -64,4 +64,39 @@ class DashboardRepository {
       throw AppException.fromDioException(exception);
     }
   }
+
+  Future<List<DashboardSectionCard>> fetchSectionCards({
+    String? fiscalYearId,
+    int level = 3,
+    int limit = 50,
+  }) async {
+    try {
+      final response = await _apiClient.instance.get<Map<String, dynamic>>(
+        '/dashboard/section-cards',
+        queryParameters: {
+          if (fiscalYearId != null && fiscalYearId.isNotEmpty)
+            'fiscal_year_id': fiscalYearId,
+          'level': level,
+          'limit': limit,
+        },
+      );
+      final payload = response.data?['data']?['items'];
+      if (payload is! List) {
+        throw const AppException(
+          message: 'تعذر قراءة كاردات أبواب الداشبورد من الخادم.',
+          code: 'INVALID_DASHBOARD_SECTION_CARDS_RESPONSE',
+        );
+      }
+
+      return payload
+          .whereType<Map>()
+          .map(
+            (item) =>
+                DashboardSectionCard.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList();
+    } on DioException catch (exception) {
+      throw AppException.fromDioException(exception);
+    }
+  }
 }

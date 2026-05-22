@@ -1,4 +1,5 @@
 SET client_encoding = 'UTF8';
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- تعليق عربي: بيانات تجريبية كاملة بعد تنظيف بيانات التشغيل.
 -- يشمل: سنة مالية، برامج، شجرة أبواب هرمية، تخصيصات سنوية، حجوزات، صرف، وحركات Ledger.
@@ -10,6 +11,7 @@ BEGIN;
 DO $$
 DECLARE
   v_admin_id UUID;
+  v_admin_role_id UUID;
   v_fiscal_year_id UUID;
   v_operational_type_id UUID;
   v_oncology_type_id UUID;
@@ -58,7 +60,33 @@ BEGIN
   LIMIT 1;
 
   IF v_admin_id IS NULL THEN
-    RAISE EXCEPTION 'لا يوجد مستخدم في النظام. شغّل الـ API مرة واحدة حتى ينشئ حساب المدير الافتراضي، ثم أعد تشغيل هذا الملف.';
+    -- تعليق عربي: إذا كانت قاعدة البيانات منظفة بالكامل، ننشئ مديراً تجريبياً حتى لا يفشل إدخال بيانات التجربة.
+    INSERT INTO roles (code, name, description)
+    VALUES ('SUPER_ADMIN', 'سوبر أدمن', 'كل الصلاحيات داخل النظام')
+    ON CONFLICT (code) DO UPDATE
+    SET
+      name = EXCLUDED.name,
+      description = EXCLUDED.description,
+      updated_at = NOW()
+    RETURNING id INTO v_admin_role_id;
+
+    INSERT INTO users (
+      username,
+      full_name,
+      email,
+      password_hash,
+      role_id,
+      is_active
+    )
+    VALUES (
+      'admin',
+      'System Administrator',
+      'admin@finance.local',
+      crypt('Admin@123', gen_salt('bf')),
+      v_admin_role_id,
+      TRUE
+    )
+    RETURNING id INTO v_admin_id;
   END IF;
 
   INSERT INTO fiscal_years (year, name, start_date, end_date, is_active)

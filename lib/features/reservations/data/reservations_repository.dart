@@ -17,6 +17,8 @@ class ReservationsRepository {
     required String? budgetSectionId,
     required String? fundingId,
     required String? executionStatus,
+    required String? dateFrom,
+    required String? dateTo,
     required int page,
     required int pageSize,
   }) async {
@@ -30,6 +32,8 @@ class ReservationsRepository {
           'budget_section_id': budgetSectionId,
           'funding_id': fundingId,
           'execution_status': executionStatus,
+          'date_from': dateFrom,
+          'date_to': dateTo,
           'page': page,
           'page_size': pageSize,
         },

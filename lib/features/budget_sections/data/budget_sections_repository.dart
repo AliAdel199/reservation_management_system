@@ -48,9 +48,23 @@ class BudgetSectionsRepository {
     }
   }
 
-  Future<void> createBudgetSection(Map<String, dynamic> payload) async {
+  Future<BudgetSectionItem> createBudgetSection(
+    Map<String, dynamic> payload,
+  ) async {
     try {
-      await _apiClient.instance.post('/budget-sections', data: payload);
+      final response = await _apiClient.instance.post<Map<String, dynamic>>(
+        '/budget-sections',
+        data: payload,
+      );
+      final payloadData = response.data?['data'];
+      if (payloadData is! Map<String, dynamic>) {
+        throw const AppException(
+          message: 'تعذر قراءة الباب المالي المنشأ من الخادم.',
+          code: 'INVALID_BUDGET_SECTION_CREATE_RESPONSE',
+        );
+      }
+
+      return BudgetSectionItem.fromJson(payloadData);
     } on DioException catch (exception) {
       throw AppException.fromDioException(exception);
     }

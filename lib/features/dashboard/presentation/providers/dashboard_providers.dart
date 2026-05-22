@@ -42,3 +42,17 @@ final balanceAlertsProvider =
 
       return ref.watch(dashboardRepositoryProvider).fetchBalanceAlerts();
     });
+
+final dashboardSectionCardsProvider = FutureProvider.autoDispose
+    .family<List<DashboardSectionCard>, int>((ref, level) async {
+      final timer = Stream<void>.periodic(const Duration(seconds: 10)).listen((
+        _,
+      ) {
+        ref.invalidateSelf();
+      });
+      ref.onDispose(timer.cancel);
+
+      return ref
+          .watch(dashboardRepositoryProvider)
+          .fetchSectionCards(level: level);
+    });

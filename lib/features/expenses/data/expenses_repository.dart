@@ -15,6 +15,8 @@ class ExpensesRepository {
     required String? reservationId,
     required String? programId,
     required String? budgetSectionId,
+    required String? dateFrom,
+    required String? dateTo,
     required int page,
     required int pageSize,
   }) async {
@@ -26,6 +28,8 @@ class ExpensesRepository {
           'reservation_id': reservationId,
           'program_id': programId,
           'budget_section_id': budgetSectionId,
+          'date_from': dateFrom,
+          'date_to': dateTo,
           'page': page,
           'page_size': pageSize,
         },

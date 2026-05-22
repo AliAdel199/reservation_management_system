@@ -70,7 +70,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/reservations',
-            builder: (context, state) => const ReservationsPage(),
+            builder: (context, state) => ReservationsPage(
+              initialProgramId: state.uri.queryParameters['program_id'],
+              initialBudgetSectionId:
+                  state.uri.queryParameters['budget_section_id'],
+            ),
           ),
           GoRoute(
             path: '/expenses',

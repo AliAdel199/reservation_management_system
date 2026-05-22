@@ -22,7 +22,14 @@ import '../../models/reservation_item.dart';
 import '../controllers/reservations_controller.dart';
 
 class ReservationsPage extends ConsumerStatefulWidget {
-  const ReservationsPage({super.key});
+  const ReservationsPage({
+    super.key,
+    this.initialProgramId,
+    this.initialBudgetSectionId,
+  });
+
+  final String? initialProgramId;
+  final String? initialBudgetSectionId;
 
   @override
   ConsumerState<ReservationsPage> createState() => _ReservationsPageState();
@@ -35,6 +42,17 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
   String? _selectedBudgetSectionId;
   String? _selectedStatus;
   String? _selectedExecutionStatus;
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
+  bool _appliedInitialFilters = false;
+  final _filterDateFormat = DateFormat('yyyy-MM-dd');
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedProgramId = _emptyToNull(widget.initialProgramId);
+    _selectedBudgetSectionId = _emptyToNull(widget.initialBudgetSectionId);
+  }
 
   @override
   void dispose() {
@@ -77,14 +95,34 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     final availableSections =
         budgetSectionsLookup.asData?.value
             .where(
-              (section) =>
-                  section.isPostable &&
-                  (_selectedProgramId == null
-                      ? true
-                      : section.programId == _selectedProgramId),
+              (section) => (_selectedProgramId == null
+                  ? true
+                  : section.programId == _selectedProgramId),
             )
             .toList() ??
         const <BudgetSectionItem>[];
+    final programDropdownValue =
+        programsLookup.asData?.value.any(
+              (program) => program.id == _selectedProgramId,
+            ) ??
+            false
+        ? _selectedProgramId
+        : null;
+    final sectionDropdownValue =
+        availableSections.any(
+          (section) => section.id == _selectedBudgetSectionId,
+        )
+        ? _selectedBudgetSectionId
+        : null;
+
+    if (!_appliedInitialFilters &&
+        (_selectedProgramId != null || _selectedBudgetSectionId != null)) {
+      _appliedInitialFilters = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _applyFilters();
+      });
+    }
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -166,7 +204,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                 child: programsLookup.when(
                   data: (programs) => DropdownButtonFormField<String>(
                     isExpanded: true,
-                    initialValue: _selectedProgramId,
+                    initialValue: programDropdownValue,
                     decoration: const InputDecoration(labelText: 'البرنامج'),
                     items: [
                       const DropdownMenuItem<String>(
@@ -196,7 +234,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                 width: 220,
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: _selectedBudgetSectionId,
+                  initialValue: sectionDropdownValue,
                   decoration: const InputDecoration(labelText: 'الباب'),
                   items: [
                     const DropdownMenuItem<String>(
@@ -217,6 +255,27 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                     _selectedBudgetSectionId = value == '' ? null : value;
                   }),
                 ),
+              ),
+              _DateFilterField(
+                label: 'من تاريخ',
+                value: _dateFrom,
+                formatter: _filterDateFormat,
+                onChanged: (value) => _updateFilters(() {
+                  _dateFrom = value;
+                }),
+              ),
+              _DateFilterField(
+                label: 'إلى تاريخ',
+                value: _dateTo,
+                formatter: _filterDateFormat,
+                onChanged: (value) => _updateFilters(() {
+                  _dateTo = value;
+                }),
+              ),
+              OutlinedButton.icon(
+                onPressed: _resetFilters,
+                icon: const Icon(Icons.filter_alt_off_outlined),
+                label: const Text('مسح الفلاتر'),
               ),
             ],
           ),
@@ -404,6 +463,12 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     );
   }
 
+  String? _emptyToNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed;
+  }
+
   Future<void> _openCreateDialog(
     List<ProgramItem> programs,
     List<BudgetSectionItem> sections,
@@ -424,6 +489,8 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
         _selectedBudgetSectionId = null;
         _selectedStatus = null;
         _selectedExecutionStatus = null;
+        _dateFrom = null;
+        _dateTo = null;
       });
       await ref
           .read(reservationsControllerProvider.notifier)
@@ -434,6 +501,8 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
             budgetSectionId: '',
             fundingId: '',
             executionStatus: '',
+            dateFrom: '',
+            dateTo: '',
           );
       _showMessage('تم إنشاء الحجز بنجاح وظهوره ضمن القائمة.');
     } on AppException catch (exception) {
@@ -561,6 +630,8 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
           budgetSectionId: _selectedBudgetSectionId ?? '',
           fundingId: '',
           executionStatus: _selectedExecutionStatus ?? '',
+          dateFrom: _formatDateParam(_dateFrom),
+          dateTo: _formatDateParam(_dateTo),
         );
   }
 
@@ -569,10 +640,38 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     _applyFilters();
   }
 
+  void _resetFilters() {
+    _searchDebounce?.cancel();
+    setState(() {
+      _searchController.clear();
+      _selectedProgramId = null;
+      _selectedBudgetSectionId = null;
+      _selectedStatus = null;
+      _selectedExecutionStatus = null;
+      _dateFrom = null;
+      _dateTo = null;
+    });
+    ref
+        .read(reservationsControllerProvider.notifier)
+        .applyFilters(
+          search: '',
+          status: '',
+          programId: '',
+          budgetSectionId: '',
+          fundingId: '',
+          executionStatus: '',
+          dateFrom: '',
+          dateTo: '',
+        );
+  }
+
   void _scheduleApplyFilters() {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 350), _applyFilters);
   }
+
+  String _formatDateParam(DateTime? value) =>
+      value == null ? '' : _filterDateFormat.format(value);
 
   Future<bool> _confirmAction({
     required String title,
@@ -604,6 +703,53 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _DateFilterField extends StatelessWidget {
+  const _DateFilterField({
+    required this.label,
+    required this.value,
+    required this.formatter,
+    required this.onChanged,
+  });
+
+  final String label;
+  final DateTime? value;
+  final DateFormat formatter;
+  final ValueChanged<DateTime?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 170,
+      child: TextField(
+        readOnly: true,
+        controller: TextEditingController(
+          text: value == null ? '' : formatter.format(value!),
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.date_range_outlined),
+          suffixIcon: value == null
+              ? null
+              : IconButton(
+                  tooltip: 'مسح التاريخ',
+                  onPressed: () => onChanged(null),
+                  icon: const Icon(Icons.close),
+                ),
+        ),
+        onTap: () async {
+          final selected = await showDatePicker(
+            context: context,
+            initialDate: value ?? DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+          );
+          if (selected != null) onChanged(selected);
+        },
+      ),
+    );
   }
 }
 
@@ -820,9 +966,9 @@ class _ReservationDialogState extends State<_ReservationDialog> {
                           labelText: 'رقم الهاتف',
                         ),
                         keyboardType: TextInputType.phone,
-                        validator: FormBuilderValidators.required(
-                          errorText: 'الحقل مطلوب',
-                        ),
+                        // validator: FormBuilderValidators.required(
+                        //   errorText: 'الحقل مطلوب',
+                        // ),
                       ),
                     ),
                   ],

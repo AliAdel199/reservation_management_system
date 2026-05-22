@@ -17,6 +17,36 @@ import '../../../reservations/presentation/controllers/reservations_controller.d
 
 enum _ReservationImportStatus { reserved, approved }
 
+class _SectionImportRow {
+  const _SectionImportRow({
+    required this.rowNumber,
+    required this.fiscalYear,
+    required this.program,
+    required this.parentCode,
+    required this.code,
+    required this.fullCode,
+    required this.name,
+    required this.isPostable,
+    required this.allocatedAmount,
+    required this.sortOrder,
+    required this.description,
+    required this.isActive,
+  });
+
+  final int rowNumber;
+  final FiscalYearItem fiscalYear;
+  final ProgramItem program;
+  final String parentCode;
+  final String code;
+  final String fullCode;
+  final String name;
+  final bool? isPostable;
+  final double allocatedAmount;
+  final int sortOrder;
+  final String description;
+  final bool isActive;
+}
+
 class DataExchangePage extends ConsumerStatefulWidget {
   const DataExchangePage({super.key});
 
@@ -54,7 +84,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                 _ActionCard(
                   title: 'قالب البرامج والأبواب',
                   description:
-                      'ينشئ ملف Excel بشيت للبرامج وشيت للأبواب مع التخصيص السنوي لكل باب.',
+                      'ينشئ ملف Excel بشيت للبرامج وشيت لشجرة الأبواب مع الباب الأب والكود الكامل ونوع الباب.',
                   icon: Icons.apps_outlined,
                   actionLabel: 'تصدير القالب',
                   onPressed: _isWorking ? null : _exportProgramsTemplate,
@@ -62,7 +92,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                 _ActionCard(
                   title: 'استيراد البرامج والأبواب',
                   description:
-                      'يقرأ شيت البرامج أولاً ثم يضيف الأبواب المرتبطة بها حسب اسم البرنامج والسنة.',
+                      'يقرأ شيت البرامج أولاً ثم يبني شجرة الأبواب من الأعلى إلى الأسفل حسب الباب الأب والكود الكامل.',
                   icon: Icons.upload_file_outlined,
                   actionLabel: 'اختيار ملف Excel',
                   onPressed: _isWorking ? null : _importPrograms,
@@ -70,7 +100,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                 _ActionCard(
                   title: 'تصدير البرامج',
                   description:
-                      'يصدّر البرامج الحالية مع عدد الأبواب ومجموع التخصيص السنوي.',
+                      'يصدّر البرامج الحالية مع شيت تفصيلي للأبواب الهرمية والتخصيص السنوي لكل باب نهائي.',
                   icon: Icons.download_outlined,
                   actionLabel: 'تصدير Excel',
                   onPressed: _isWorking ? null : _exportProgramsData,
@@ -123,13 +153,16 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                       'رمز البرنامج داخلي حالياً؛ يكفي إدخال اسم البرنامج والسنة المالية.',
                     ),
                     _InstructionLine(
-                      'قالب البرامج يحتوي شيتين: البرامج ثم الأبواب. الأبواب تعتمد على اسم البرنامج والسنة المالية.',
+                      'قالب البرامج يحتوي شيتين: البرامج ثم الأبواب. في شيت الأبواب استخدم رمز الباب الأب أو الكود الكامل لبناء الشجرة.',
+                    ),
+                    _InstructionLine(
+                      'نوع الباب يكون تجميعي أو نهائي. التخصيص السنوي يكتب فقط للأبواب النهائية التي تقبل الحجز والصرف.',
                     ),
                     _InstructionLine(
                       'أي سجل مكرر أو ناقص البيانات سيتم رفضه برسالة واضحة بدون حذف البيانات القديمة.',
                     ),
                     _InstructionLine(
-                      'استيراد الحجوزات لا يتجاوز قواعد الرصيد؛ إذا المبلغ أكبر من المتاح سيرفضه الخادم.',
+                      'استيراد الحجوزات يقبل كود الباب النهائي أو الكود الكامل، ولا يقبل الحجز على باب تجميعي.',
                     ),
                     _InstructionLine(
                       'حالة الحجز في القالب تقبل فقط: محجوز أو معتمد. المصروف والملغي يتمان من داخل النظام للحفاظ على السجل المالي.',
@@ -168,9 +201,13 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       final sectionHeaders = [
         'السنة',
         'اسم البرنامج',
+        'رمز الباب الأب',
         'رمز الباب',
+        'الكود الكامل',
         'اسم الباب',
+        'نوع الباب',
         'التخصيص السنوي',
+        'ترتيب العرض',
         'الوصف',
         'فعال',
       ];
@@ -193,10 +230,40 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       _writeRow(sectionsSheet, 1, [
         TextCellValue((activeYear?.year ?? DateTime.now().year).toString()),
         TextCellValue('التشغيلية'),
-        TextCellValue('0101'),
-        TextCellValue('وقود'),
+        TextCellValue(''),
+        TextCellValue('02'),
+        TextCellValue('02'),
+        TextCellValue('نفقات'),
+        TextCellValue('تجميعي'),
         DoubleCellValue(0),
-        TextCellValue('باب الوقود ضمن البرنامج التشغيلي'),
+        IntCellValue(1),
+        TextCellValue('باب تجميعي رئيسي'),
+        TextCellValue('نعم'),
+      ]);
+      _writeRow(sectionsSheet, 2, [
+        TextCellValue((activeYear?.year ?? DateTime.now().year).toString()),
+        TextCellValue('التشغيلية'),
+        TextCellValue('02'),
+        TextCellValue('0201'),
+        TextCellValue('02 0201'),
+        TextCellValue('تعويضات الموظفين'),
+        TextCellValue('تجميعي'),
+        DoubleCellValue(0),
+        IntCellValue(1),
+        TextCellValue('باب فرعي تجميعي'),
+        TextCellValue('نعم'),
+      ]);
+      _writeRow(sectionsSheet, 3, [
+        TextCellValue((activeYear?.year ?? DateTime.now().year).toString()),
+        TextCellValue('التشغيلية'),
+        TextCellValue('02 0201'),
+        TextCellValue('0101'),
+        TextCellValue('02 0201 0101'),
+        TextCellValue('وقود'),
+        TextCellValue('نهائي'),
+        DoubleCellValue(5000000),
+        IntCellValue(1),
+        TextCellValue('باب نهائي يقبل التخصيص والحجز والصرف'),
         TextCellValue('نعم'),
       ]);
 
@@ -206,7 +273,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       for (var index = 0; index < sectionHeaders.length; index++) {
         sectionsSheet.setColumnWidth(
           index,
-          index == 1 || index == 3 || index == 5 ? 28 : 18,
+          index == 1 || index == 5 || index == 9 ? 30 : 18,
         );
       }
       if (excel.sheets.containsKey('Sheet1')) {
@@ -327,6 +394,12 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
 
       if (sectionsSheet != null && sectionsSheet.rows.length >= 2) {
         final headers = _headerMap(sectionsSheet.rows.first);
+        final existingSections = await ref.read(
+          allBudgetSectionsLookupProvider.future,
+        );
+        final sectionLookup = _buildSectionLookup(existingSections);
+        final parsedRows = <_SectionImportRow>[];
+
         for (
           var rowIndex = 1;
           rowIndex < sectionsSheet.rows.length;
@@ -351,43 +424,74 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
               name: _cellByHeaders(row, headers, const [
                 'اسم البرنامج',
                 'البرنامج',
+                'الميزانية',
                 'program name',
                 'program',
               ], fallbackIndex: 1),
               fiscalYearId: fiscalYear.id,
             );
+            final parentCode = _cellByHeaders(row, headers, const [
+              'رمز الباب الأب',
+              'كود الباب الأب',
+              'الباب الأب',
+              'parent code',
+              'parent_code',
+            ], fallbackIndex: -1);
             final sectionCode = _cellByHeaders(row, headers, const [
               'رمز الباب',
               'كود الباب',
               'section code',
               'code',
-            ], fallbackIndex: 2);
+            ], fallbackIndex: 3);
+            final fullCode = _cellByHeaders(row, headers, const [
+              'الكود الكامل',
+              'full code',
+              'full_code',
+              'path code',
+            ], fallbackIndex: -1);
             final sectionName = _cellByHeaders(row, headers, const [
               'اسم الباب',
               'الباب',
               'section name',
               'name',
-            ], fallbackIndex: 3);
+            ], fallbackIndex: 5);
+            final sectionType = _cellByHeaders(row, headers, const [
+              'نوع الباب',
+              'النوع',
+              'section type',
+              'type',
+              'is postable',
+              'is_postable',
+            ], fallbackIndex: -1);
             final allocatedAmount = _parseAmount(
               _cellByHeaders(row, headers, const [
                 'التخصيص السنوي',
                 'التخصيص',
                 'annual allocation',
                 'allocated amount',
-              ], fallbackIndex: 4),
+              ], fallbackIndex: 7),
+            );
+            final sortOrder = _parseInt(
+              _cellByHeaders(row, headers, const [
+                'ترتيب العرض',
+                'الترتيب',
+                'sort order',
+                'sort_order',
+              ], fallbackIndex: -1),
             );
             final description = _cellByHeaders(row, headers, const [
               'الوصف',
               'description',
-            ], fallbackIndex: 5);
+            ], fallbackIndex: 9);
             final isActive = _parseBool(
               _cellByHeaders(row, headers, const [
                 'فعال',
                 'الحالة',
                 'active',
                 'is active',
-              ], fallbackIndex: 6),
+              ], fallbackIndex: 10),
             );
+            final isPostable = _parsePostableSectionType(sectionType);
 
             if (sectionCode.isEmpty) {
               throw const AppException(message: 'رمز الباب مطلوب.');
@@ -401,22 +505,80 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
               );
             }
 
-            await budgetSectionsRepository.createBudgetSection({
-              'program_id': program.id,
-              'fiscal_year_id': fiscalYear.id,
-              'code': sectionCode,
-              'name': sectionName,
-              'description': description,
-              'allocated_amount': allocatedAmount,
-              'is_active': isActive,
-            });
-            imported++;
+            parsedRows.add(
+              _SectionImportRow(
+                rowNumber: rowIndex + 1,
+                fiscalYear: fiscalYear,
+                program: program,
+                parentCode: parentCode,
+                code: sectionCode,
+                fullCode: fullCode.isEmpty
+                    ? _composeFullCode(parentCode, sectionCode)
+                    : fullCode,
+                name: sectionName,
+                isPostable: isPostable,
+                allocatedAmount: allocatedAmount,
+                sortOrder: sortOrder,
+                description: description,
+                isActive: isActive,
+              ),
+            );
           } on AppException catch (exception) {
             errors.add(
               'شيت الأبواب - السطر ${rowIndex + 1}: ${exception.message}',
             );
           } catch (exception) {
             errors.add('شيت الأبواب - السطر ${rowIndex + 1}: $exception');
+          }
+        }
+
+        final parentKeys = <String>{};
+        for (final row in parsedRows) {
+          final parentCode = row.parentCode.trim().isNotEmpty
+              ? row.parentCode
+              : _parentCodeFromFullCode(row.fullCode);
+          if (parentCode.trim().isNotEmpty) {
+            parentKeys.add(_sectionCodeKey(parentCode));
+          }
+        }
+
+        parsedRows.sort((left, right) {
+          final depthCompare = _sectionCodeDepth(
+            left.fullCode,
+          ).compareTo(_sectionCodeDepth(right.fullCode));
+          if (depthCompare != 0) return depthCompare;
+          final orderCompare = left.sortOrder.compareTo(right.sortOrder);
+          if (orderCompare != 0) return orderCompare;
+          return left.rowNumber.compareTo(right.rowNumber);
+        });
+
+        for (final row in parsedRows) {
+          try {
+            final inferredPostable =
+                row.isPostable ??
+                !parentKeys.contains(_sectionCodeKey(row.fullCode));
+            final parent = _findImportedParentSection(row, sectionLookup);
+
+            final created = await budgetSectionsRepository.createBudgetSection({
+              'program_id': row.program.id,
+              'fiscal_year_id': row.fiscalYear.id,
+              'parent_id': parent?.id,
+              'code': row.code,
+              'name': row.name,
+              'description': row.description,
+              'allocated_amount': inferredPostable ? row.allocatedAmount : 0,
+              'is_active': row.isActive,
+              'is_postable': inferredPostable,
+              'sort_order': row.sortOrder,
+            });
+            _addSectionToLookup(sectionLookup, created);
+            imported++;
+          } on AppException catch (exception) {
+            errors.add(
+              'شيت الأبواب - السطر ${row.rowNumber}: ${exception.message}',
+            );
+          } catch (exception) {
+            errors.add('شيت الأبواب - السطر ${row.rowNumber}: $exception');
           }
         }
       }
@@ -438,6 +600,13 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
         page: 1,
         pageSize: 5000,
       );
+      final sections = await ref.read(allBudgetSectionsLookupProvider.future);
+      final sectionsById = {
+        for (final section in sections) section.id: section,
+      };
+      final programsById = {
+        for (final program in result.items) program.id: program,
+      };
 
       final file = await _buildDownloadsFile(
         prefix: 'programs_export',
@@ -446,6 +615,8 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       final excel = Excel.createExcel();
       const sheetName = 'البرامج';
       final sheet = excel[sheetName];
+      const sectionsSheetName = 'الأبواب';
+      final sectionsSheet = excel[sectionsSheetName];
       final headers = [
         'السنة',
         'اسم البرنامج',
@@ -454,11 +625,29 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
         'مجموع التخصيص السنوي',
         'الحالة',
       ];
+      final sectionHeaders = [
+        'السنة',
+        'اسم البرنامج',
+        'رمز الباب الأب',
+        'رمز الباب',
+        'الكود الكامل',
+        'اسم الباب',
+        'نوع الباب',
+        'التخصيص السنوي',
+        'ترتيب العرض',
+        'الوصف',
+        'فعال',
+      ];
 
       _writeRow(
         sheet,
         0,
         headers.map((value) => TextCellValue(value)).toList(),
+      );
+      _writeRow(
+        sectionsSheet,
+        0,
+        sectionHeaders.map((value) => TextCellValue(value)).toList(),
       );
 
       for (var index = 0; index < result.items.length; index++) {
@@ -475,8 +664,35 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
         ]);
       }
 
+      for (var index = 0; index < sections.length; index++) {
+        final section = sections[index];
+        final parent = sectionsById[section.parentId];
+        final program = programsById[section.programId];
+        _writeRow(sectionsSheet, index + 1, [
+          TextCellValue(
+            section.fiscalYearName ?? program?.fiscalYear.toString() ?? '',
+          ),
+          TextCellValue(section.programName),
+          TextCellValue(parent?.fullCode ?? parent?.code ?? ''),
+          TextCellValue(section.code),
+          TextCellValue(section.fullCode),
+          TextCellValue(section.name),
+          TextCellValue(section.isPostable ? 'نهائي' : 'تجميعي'),
+          DoubleCellValue(section.allocatedAmount),
+          IntCellValue(section.sortOrder),
+          TextCellValue(section.description ?? ''),
+          TextCellValue(section.isActive ? 'نعم' : 'لا'),
+        ]);
+      }
+
       for (var index = 0; index < headers.length; index++) {
         sheet.setColumnWidth(index, index == 2 || index == 3 ? 28 : 18);
+      }
+      for (var index = 0; index < sectionHeaders.length; index++) {
+        sectionsSheet.setColumnWidth(
+          index,
+          index == 1 || index == 5 || index == 9 ? 30 : 18,
+        );
       }
       if (excel.sheets.containsKey('Sheet1')) {
         excel.delete('Sheet1');
@@ -489,7 +705,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       await file.writeAsBytes(bytes, flush: true);
       await _openFile(file.path);
       _showSuccessMessage(
-        'تم تصدير ${result.items.length} برنامج بنجاح: ${file.path}',
+        'تم تصدير ${result.items.length} برنامج و ${sections.length} باب بنجاح: ${file.path}',
       );
     });
   }
@@ -502,7 +718,10 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       final activeYear = fiscalYears.where((item) => item.isActive).firstOrNull;
       final firstProgram = programs.firstOrNull;
       final firstSection = sections
-          .where((section) => section.programId == firstProgram?.id)
+          .where(
+            (section) =>
+                section.programId == firstProgram?.id && section.isPostable,
+          )
           .firstOrNull;
 
       final file = await _buildDownloadsFile(
@@ -537,7 +756,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
         TextCellValue((activeYear?.year ?? DateTime.now().year).toString()),
         TextCellValue('RES-${DateTime.now().millisecondsSinceEpoch}'),
         TextCellValue(firstProgram?.name ?? 'التشغيلية'),
-        TextCellValue(firstSection?.code ?? '0101'),
+        TextCellValue(firstSection?.fullCode ?? firstSection?.code ?? '0101'),
         TextCellValue(firstSection?.name ?? 'وقود'),
         TextCellValue('الجهة المحجوز لها'),
         TextCellValue('القسم'),
@@ -745,6 +964,8 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
         executionStatus: null,
         page: 1,
         pageSize: 5000,
+        dateFrom: '',
+        dateTo: '',
       );
 
       final file = await _buildDownloadsFile(
@@ -1043,22 +1264,174 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
     if (normalizedCode.isEmpty && normalizedName.isEmpty) {
       throw const AppException(message: 'الباب مطلوب.');
     }
-    return items.firstWhere(
+    final scopedItems = items.where(
       (item) =>
-          item.programId == programId &&
-          item.fiscalYearId == fiscalYearId &&
-          ((normalizedCode.isNotEmpty && item.code == normalizedCode) ||
-              (normalizedName.isNotEmpty && item.name == normalizedName)),
+          item.programId == programId && item.fiscalYearId == fiscalYearId,
+    );
+    final section = scopedItems.firstWhere(
+      (item) =>
+          (normalizedCode.isNotEmpty &&
+              (_sameSectionCode(item.code, normalizedCode) ||
+                  _sameSectionCode(item.fullCode, normalizedCode))) ||
+          (normalizedName.isNotEmpty &&
+              _sameBusinessName(item.name, normalizedName)),
       orElse: () => throw AppException(
         message:
             'الباب غير موجود: ${normalizedCode.isEmpty ? normalizedName : normalizedCode}',
       ),
     );
+
+    if (!section.isPostable) {
+      throw AppException(
+        message:
+            'الباب ${section.fullCode} - ${section.name} تجميعي ولا يقبل الحجز. اختر باباً نهائياً من الشجرة.',
+      );
+    }
+
+    return section;
+  }
+
+  Map<String, BudgetSectionItem> _buildSectionLookup(
+    List<BudgetSectionItem> sections,
+  ) {
+    final lookup = <String, BudgetSectionItem>{};
+    for (final section in sections) {
+      _addSectionToLookup(lookup, section);
+    }
+    return lookup;
+  }
+
+  void _addSectionToLookup(
+    Map<String, BudgetSectionItem> lookup,
+    BudgetSectionItem section,
+  ) {
+    for (final key in _sectionLookupKeys(section)) {
+      lookup[key] = section;
+    }
+  }
+
+  Iterable<String> _sectionLookupKeys(BudgetSectionItem section) sync* {
+    final fiscalYearId = section.fiscalYearId ?? '';
+    for (final code in [
+      section.code,
+      section.fullCode,
+      section.name,
+    ].whereType<String>()) {
+      final normalized = _sectionCodeKey(code);
+      if (normalized.isNotEmpty) {
+        yield _sectionLookupKey(section.programId, fiscalYearId, normalized);
+      }
+    }
+  }
+
+  String _sectionLookupKey(
+    String programId,
+    String fiscalYearId,
+    String code,
+  ) => '$programId|$fiscalYearId|${_sectionCodeKey(code)}';
+
+  BudgetSectionItem? _findImportedParentSection(
+    _SectionImportRow row,
+    Map<String, BudgetSectionItem> lookup,
+  ) {
+    final parentCode = row.parentCode.trim().isNotEmpty
+        ? row.parentCode
+        : _parentCodeFromFullCode(row.fullCode);
+    if (parentCode.isEmpty) return null;
+
+    final key = _sectionLookupKey(
+      row.program.id,
+      row.fiscalYear.id,
+      parentCode,
+    );
+    final parent = lookup[key];
+    if (parent == null) {
+      throw AppException(message: 'الباب الأب غير موجود: $parentCode');
+    }
+    return parent;
+  }
+
+  String _composeFullCode(String parentCode, String code) {
+    final parent = parentCode.trim();
+    final child = code.trim();
+    return parent.isEmpty ? child : '$parent $child';
+  }
+
+  String _parentCodeFromFullCode(String fullCode) {
+    final parts = fullCode
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.trim().isNotEmpty)
+        .toList();
+    if (parts.length <= 1) return '';
+    return parts.take(parts.length - 1).join(' ');
+  }
+
+  int _sectionCodeDepth(String fullCode) => fullCode
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .length;
+
+  bool _sameSectionCode(String left, String right) {
+    final leftCandidates = _sectionCodeCandidates(left);
+    final rightCandidates = _sectionCodeCandidates(right);
+    return leftCandidates.any(rightCandidates.contains);
+  }
+
+  Set<String> _sectionCodeCandidates(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return const {};
+    final beforeDash = trimmed.split(RegExp(r'\s[-–ـ]\s')).first.trim();
+    final parts = beforeDash
+        .split(RegExp(r'\s+'))
+        .where((part) => part.trim().isNotEmpty)
+        .toList();
+    return {
+      _sectionCodeKey(trimmed),
+      _sectionCodeKey(beforeDash),
+      if (parts.isNotEmpty) _sectionCodeKey(parts.last),
+    }..removeWhere((item) => item.isEmpty);
+  }
+
+  String _sectionCodeKey(String value) {
+    final beforeDash = value.trim().split(RegExp(r'\s[-–ـ]\s')).first;
+    return beforeDash
+        .replaceAll(RegExp(r'[^0-9A-Za-z\u0600-\u06FF]+'), '')
+        .toLowerCase();
+  }
+
+  bool? _parsePostableSectionType(String value) {
+    final normalized = _normalizeBusinessName(value);
+    if (normalized.isEmpty) return null;
+    if (normalized == 'نهائي' ||
+        normalized == 'leaf' ||
+        normalized == 'postable' ||
+        normalized == 'نعم' ||
+        normalized == 'true' ||
+        normalized == '1') {
+      return true;
+    }
+    if (normalized == 'تجميعي' ||
+        normalized == 'رئيسي' ||
+        normalized == 'parent' ||
+        normalized == 'group' ||
+        normalized == 'لا' ||
+        normalized == 'false' ||
+        normalized == '0') {
+      return false;
+    }
+    throw AppException(message: 'نوع الباب غير صحيح: $value');
   }
 
   double _parseAmount(String value) {
     final cleaned = value.replaceAll(',', '').replaceAll('د.ع', '').trim();
     return double.tryParse(cleaned) ?? 0;
+  }
+
+  int _parseInt(String value) {
+    final cleaned = value.replaceAll(',', '').trim();
+    return int.tryParse(cleaned) ?? 0;
   }
 
   bool _parseBool(String value) {

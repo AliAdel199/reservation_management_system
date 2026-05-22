@@ -39,9 +39,11 @@ class DashboardSummary {
     final balanceAlerts = alertsPayload is List
         ? alertsPayload
               .whereType<Map>()
-              .map((item) => DashboardBalanceAlert.fromJson(
-                    Map<String, dynamic>.from(item),
-                  ))
+              .map(
+                (item) => DashboardBalanceAlert.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
               .toList()
         : const <DashboardBalanceAlert>[];
 
@@ -100,6 +102,59 @@ class DashboardBalanceAlert {
       threshold: parse(json['threshold']),
       severity: json['severity']?.toString() ?? 'warning',
       message: json['message']?.toString() ?? '',
+    );
+  }
+}
+
+class DashboardSectionCard {
+  const DashboardSectionCard({
+    required this.sectionId,
+    required this.programId,
+    required this.programName,
+    required this.sectionCode,
+    required this.sectionName,
+    required this.sectionPath,
+    required this.totalAllocation,
+    required this.totalReserved,
+    required this.totalSpent,
+    required this.remainingBalance,
+    required this.childrenCount,
+    required this.postableChildrenCount,
+  });
+
+  final String sectionId;
+  final String programId;
+  final String programName;
+  final String sectionCode;
+  final String sectionName;
+  final String sectionPath;
+  final double totalAllocation;
+  final double totalReserved;
+  final double totalSpent;
+  final double remainingBalance;
+  final int childrenCount;
+  final int postableChildrenCount;
+
+  factory DashboardSectionCard.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '0') ?? 0;
+    int parseInt(dynamic value) =>
+        value is int ? value : int.tryParse(value?.toString() ?? '0') ?? 0;
+
+    return DashboardSectionCard(
+      sectionId: json['section_id']?.toString() ?? '',
+      programId: json['program_id']?.toString() ?? '',
+      programName: json['program_name']?.toString() ?? '',
+      sectionCode: json['section_code']?.toString() ?? '',
+      sectionName: json['section_name']?.toString() ?? '',
+      sectionPath: json['section_path']?.toString() ?? '',
+      totalAllocation: parseDouble(json['total_allocation']),
+      totalReserved: parseDouble(json['total_reserved']),
+      totalSpent: parseDouble(json['total_spent']),
+      remainingBalance: parseDouble(json['remaining_balance']),
+      childrenCount: parseInt(json['children_count']),
+      postableChildrenCount: parseInt(json['postable_children_count']),
     );
   }
 }

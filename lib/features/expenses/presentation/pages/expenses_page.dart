@@ -35,7 +35,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
   String? _reservationId;
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
   bool _openedInitialDialog = false;
+  final _filterDateFormat = DateFormat('yyyy-MM-dd');
 
   @override
   void initState() {
@@ -175,6 +178,27 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                   error: (_, __) => const Text('تعذر تحميل الحجوزات'),
                 ),
               ),
+              _DateFilterField(
+                label: 'من تاريخ',
+                value: _dateFrom,
+                formatter: _filterDateFormat,
+                onChanged: (value) => _updateFilters(() {
+                  _dateFrom = value;
+                }),
+              ),
+              _DateFilterField(
+                label: 'إلى تاريخ',
+                value: _dateTo,
+                formatter: _filterDateFormat,
+                onChanged: (value) => _updateFilters(() {
+                  _dateTo = value;
+                }),
+              ),
+              OutlinedButton.icon(
+                onPressed: _resetFilters,
+                icon: const Icon(Icons.filter_alt_off_outlined),
+                label: const Text('مسح الفلاتر'),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -185,8 +209,35 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                 onRetry: () =>
                     ref.read(expensesControllerProvider.notifier).refresh(),
                 data: (state) {
+                  final summary = _ExpensePageSummary.fromItems(
+                    state.result.items,
+                  );
                   return Column(
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            _SummaryCard(
+                              title: 'السجلات ضمن الفلترة',
+                              value: state.result.pagination.total.toString(),
+                              subtitle: 'حسب البحث والفترة المختارة',
+                            ),
+                            _SummaryCard(
+                              title: 'مصروف الصفحة الحالية',
+                              value: currency.format(summary.totalPaid),
+                              subtitle: 'لا يشمل الصرف الملغي',
+                            ),
+                            _SummaryCard(
+                              title: 'الصرف الملغي',
+                              value: currency.format(summary.cancelledAmount),
+                              subtitle: '${summary.cancelledCount} سجل ملغي',
+                            ),
+                          ],
+                        ),
+                      ),
                       Expanded(
                         child: SfDataGrid(
                           source: _ExpensesDataSource(
@@ -296,6 +347,8 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
         .applyFilters(
           search: _searchController.text,
           reservationId: _reservationId ?? '',
+          dateFrom: _formatDateParam(_dateFrom),
+          dateTo: _formatDateParam(_dateTo),
         );
   }
 
@@ -304,16 +357,153 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
     _applyFilters();
   }
 
+  void _resetFilters() {
+    _searchDebounce?.cancel();
+    setState(() {
+      _searchController.clear();
+      _reservationId = null;
+      _dateFrom = null;
+      _dateTo = null;
+    });
+    ref
+        .read(expensesControllerProvider.notifier)
+        .applyFilters(search: '', reservationId: '', dateFrom: '', dateTo: '');
+  }
+
   void _scheduleApplyFilters() {
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 350), _applyFilters);
   }
+
+  String _formatDateParam(DateTime? value) =>
+      value == null ? '' : _filterDateFormat.format(value);
 
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _DateFilterField extends StatelessWidget {
+  const _DateFilterField({
+    required this.label,
+    required this.value,
+    required this.formatter,
+    required this.onChanged,
+  });
+
+  final String label;
+  final DateTime? value;
+  final DateFormat formatter;
+  final ValueChanged<DateTime?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 170,
+      child: TextField(
+        readOnly: true,
+        controller: TextEditingController(
+          text: value == null ? '' : formatter.format(value!),
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.date_range_outlined),
+          suffixIcon: value == null
+              ? null
+              : IconButton(
+                  tooltip: 'مسح التاريخ',
+                  onPressed: () => onChanged(null),
+                  icon: const Icon(Icons.close),
+                ),
+        ),
+        onTap: () async {
+          final selected = await showDatePicker(
+            context: context,
+            initialDate: value ?? DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+          );
+          if (selected != null) onChanged(selected);
+        },
+      ),
+    );
+  }
+}
+
+class _ExpensePageSummary {
+  const _ExpensePageSummary({
+    required this.totalPaid,
+    required this.cancelledAmount,
+    required this.cancelledCount,
+  });
+
+  final double totalPaid;
+  final double cancelledAmount;
+  final int cancelledCount;
+
+  factory _ExpensePageSummary.fromItems(List<ExpenseItem> items) {
+    var totalPaid = 0.0;
+    var cancelledAmount = 0.0;
+    var cancelledCount = 0;
+
+    for (final item in items) {
+      if (item.expenseStatus == 'cancelled') {
+        cancelledAmount += item.amount;
+        cancelledCount++;
+      } else {
+        totalPaid += item.amount;
+      }
+    }
+
+    return _ExpensePageSummary(
+      totalPaid: totalPaid,
+      cancelledAmount: cancelledAmount,
+      cancelledCount: cancelledCount,
+    );
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String value;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD7E2EC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF123B56),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
   }
 }
 

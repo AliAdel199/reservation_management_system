@@ -14,6 +14,8 @@ class ExpensesState {
     required this.reservationId,
     required this.programId,
     required this.budgetSectionId,
+    required this.dateFrom,
+    required this.dateTo,
   });
 
   final PagedResult<ExpenseItem> result;
@@ -21,6 +23,8 @@ class ExpensesState {
   final String? reservationId;
   final String? programId;
   final String? budgetSectionId;
+  final String? dateFrom;
+  final String? dateTo;
 }
 
 final expensesRepositoryProvider = Provider<ExpensesRepository>(
@@ -38,6 +42,8 @@ final spendableReservationsProvider = FutureProvider<List<ReservationItem>>((
     budgetSectionId: null,
     fundingId: null,
     executionStatus: null,
+    dateFrom: null,
+    dateTo: null,
     page: 1,
     pageSize: 300,
   );
@@ -64,6 +70,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
     reservationId: null,
     programId: null,
     budgetSectionId: null,
+    dateFrom: null,
+    dateTo: null,
     page: 1,
   );
 
@@ -72,6 +80,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
     required String? reservationId,
     required String? programId,
     required String? budgetSectionId,
+    required String? dateFrom,
+    required String? dateTo,
     required int page,
   }) async {
     final result = await _repository.fetchExpenses(
@@ -79,6 +89,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
       reservationId: reservationId,
       programId: programId,
       budgetSectionId: budgetSectionId,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
       page: page,
       pageSize: _pageSize,
     );
@@ -89,6 +101,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
       reservationId: reservationId,
       programId: programId,
       budgetSectionId: budgetSectionId,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
     );
   }
 
@@ -103,6 +117,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
         reservationId: current?.reservationId,
         programId: current?.programId,
         budgetSectionId: current?.budgetSectionId,
+        dateFrom: current?.dateFrom,
+        dateTo: current?.dateTo,
         page: current?.result.pagination.page ?? 1,
       ),
     );
@@ -113,6 +129,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
     String? reservationId,
     String? programId,
     String? budgetSectionId,
+    String? dateFrom,
+    String? dateTo,
   }) async {
     final current = state.asData?.value;
     state = const AsyncLoading();
@@ -126,6 +144,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
         budgetSectionId: budgetSectionId == ''
             ? null
             : (budgetSectionId ?? current?.budgetSectionId),
+        dateFrom: dateFrom == '' ? null : (dateFrom ?? current?.dateFrom),
+        dateTo: dateTo == '' ? null : (dateTo ?? current?.dateTo),
         page: 1,
       ),
     );
@@ -142,6 +162,8 @@ class ExpensesController extends AsyncNotifier<ExpensesState> {
         reservationId: current.reservationId,
         programId: current.programId,
         budgetSectionId: current.budgetSectionId,
+        dateFrom: current.dateFrom,
+        dateTo: current.dateTo,
         page: page,
       ),
     );

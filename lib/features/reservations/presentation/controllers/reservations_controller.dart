@@ -14,6 +14,8 @@ class ReservationsState {
     required this.budgetSectionId,
     required this.fundingId,
     required this.executionStatus,
+    required this.dateFrom,
+    required this.dateTo,
   });
 
   final PagedResult<ReservationItem> result;
@@ -23,6 +25,8 @@ class ReservationsState {
   final String? budgetSectionId;
   final String? fundingId;
   final String? executionStatus;
+  final String? dateFrom;
+  final String? dateTo;
 }
 
 final reservationsRepositoryProvider = Provider<ReservationsRepository>(
@@ -48,6 +52,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
     budgetSectionId: null,
     fundingId: null,
     executionStatus: null,
+    dateFrom: null,
+    dateTo: null,
     page: 1,
   );
 
@@ -58,6 +64,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
     required String? budgetSectionId,
     required String? fundingId,
     required String? executionStatus,
+    required String? dateFrom,
+    required String? dateTo,
     required int page,
   }) async {
     final result = await _repository.fetchReservations(
@@ -67,6 +75,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
       budgetSectionId: budgetSectionId,
       fundingId: fundingId,
       executionStatus: executionStatus,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
       page: page,
       pageSize: _pageSize,
     );
@@ -79,6 +89,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
       budgetSectionId: budgetSectionId,
       fundingId: fundingId,
       executionStatus: executionStatus,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
     );
   }
 
@@ -95,6 +107,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
         budgetSectionId: current?.budgetSectionId,
         fundingId: current?.fundingId,
         executionStatus: current?.executionStatus,
+        dateFrom: current?.dateFrom,
+        dateTo: current?.dateTo,
         page: current?.result.pagination.page ?? 1,
       ),
     );
@@ -107,6 +121,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
     String? budgetSectionId,
     String? fundingId,
     String? executionStatus,
+    String? dateFrom,
+    String? dateTo,
   }) async {
     final current = state.asData?.value;
     state = const AsyncLoading();
@@ -122,6 +138,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
         executionStatus: executionStatus == ''
             ? null
             : (executionStatus ?? current?.executionStatus),
+        dateFrom: dateFrom == '' ? null : (dateFrom ?? current?.dateFrom),
+        dateTo: dateTo == '' ? null : (dateTo ?? current?.dateTo),
         page: 1,
       ),
     );
@@ -140,6 +158,8 @@ class ReservationsController extends AsyncNotifier<ReservationsState> {
         budgetSectionId: current.budgetSectionId,
         fundingId: current.fundingId,
         executionStatus: current.executionStatus,
+        dateFrom: current.dateFrom,
+        dateTo: current.dateTo,
         page: page,
       ),
     );
