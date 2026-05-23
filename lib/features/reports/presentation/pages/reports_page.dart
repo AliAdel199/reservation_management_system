@@ -5,17 +5,22 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import '../../../../core/providers/live_refresh_provider.dart';
 import '../../../../shared/widgets/async_value_view.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../budget_sections/models/budget_section_item.dart';
 import '../../../budget_sections/presentation/controllers/budget_sections_controller.dart';
 import '../../../fiscal_years/models/fiscal_year_item.dart';
 import '../../../fiscal_years/presentation/controllers/fiscal_years_controller.dart';
+import '../../../institution/models/institution_settings_item.dart';
+import '../../../institution/presentation/controllers/institution_controller.dart';
 import '../../../programs/presentation/controllers/programs_controller.dart';
 import '../../models/section_summary_item.dart';
 import '../../services/report_export_service.dart';
 import '../controllers/reports_controller.dart';
 
 class ReportsPage extends ConsumerStatefulWidget {
-  const ReportsPage({super.key});
+  const ReportsPage({super.key, this.initialActivityFilter});
+
+  final String? initialActivityFilter;
 
   @override
   ConsumerState<ReportsPage> createState() => _ReportsPageState();
@@ -29,6 +34,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   int _selectedMonth = DateTime.now().month;
   _ReportGrouping _grouping = _ReportGrouping.bySection;
   _ReportSort _sortMode = _ReportSort.sectionCodeAsc;
+  _ReportActivityFilter _activityFilter = _ReportActivityFilter.all;
   bool _hideZeroAllocation = false;
   final Set<_ReportColumn> _visibleColumns = {..._ReportColumn.values};
   SectionSummaryFilters _filters = const SectionSummaryFilters();
@@ -36,6 +42,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialActivityFilter == 'no_movement') {
+      _activityFilter = _ReportActivityFilter.noMovement;
+    }
     _filters = _buildCurrentFilters();
   }
 
@@ -45,6 +54,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     final fiscalYears = ref.watch(fiscalYearsLookupProvider);
     final programs = ref.watch(programLookupProvider);
     final sections = ref.watch(allBudgetSectionsLookupProvider);
+    final institutionSettings = ref.watch(institutionControllerProvider);
+    final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
+    final canExportReports = currentUser?.canExportReports ?? false;
     final currency = NumberFormat.currency(
       locale: 'ar_IQ',
       symbol: 'د.ع',
@@ -91,6 +103,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 data: (items) {
                   final displayItems = _displayItems(items);
                   final visibleColumns = _orderedVisibleColumns();
+                  if (!canExportReports) {
+                    return const SizedBox.shrink();
+                  }
                   return Wrap(
                     spacing: 8,
                     children: [
@@ -100,6 +115,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             : () => _exportHtml(
                                 displayItems,
                                 visibleColumns: visibleColumns,
+                                institutionSettings:
+                                    institutionSettings.asData?.value,
                                 openAfterExport: true,
                               ),
                         icon: const Icon(Icons.print_outlined),
@@ -111,6 +128,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             : () => _exportHtml(
                                 displayItems,
                                 visibleColumns: visibleColumns,
+                                institutionSettings:
+                                    institutionSettings.asData?.value,
                                 openAfterExport: false,
                               ),
                         icon: const Icon(Icons.picture_as_pdf_outlined),
@@ -122,6 +141,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             : () => _exportXlsx(
                                 displayItems,
                                 visibleColumns: visibleColumns,
+                                institutionSettings:
+                                    institutionSettings.asData?.value,
                               ),
                         icon: const Icon(Icons.table_chart_outlined),
                         label: const Text('Excel'),
@@ -285,6 +306,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       setState(() => _hideZeroAllocation = value);
                     },
                   ),
+                  FilterChip(
+                    selected:
+                        _activityFilter == _ReportActivityFilter.noMovement,
+                    avatar: const Icon(Icons.hourglass_empty_rounded, size: 18),
+                    label: const Text('أبواب بلا حركة'),
+                    onSelected: (value) {
+                      setState(() {
+                        _activityFilter = value
+                            ? _ReportActivityFilter.noMovement
+                            : _ReportActivityFilter.all;
+                      });
+                    },
+                  ),
                   OutlinedButton.icon(
                     onPressed: _openColumnsDialog,
                     icon: const Icon(Icons.view_column_outlined),
@@ -383,6 +417,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       _selectedMonth = DateTime.now().month;
       _grouping = _ReportGrouping.bySection;
       _sortMode = _ReportSort.sectionCodeAsc;
+      _activityFilter = _ReportActivityFilter.all;
       _hideZeroAllocation = false;
       _visibleColumns
         ..clear()
@@ -396,9 +431,19 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         ? [...items]
         : _groupByProgram(items);
 
-    final filtered = _hideZeroAllocation
+    final byAllocation = _hideZeroAllocation
         ? result.where((item) => item.allocatedAmount != 0).toList()
         : result;
+    final filtered = _activityFilter == _ReportActivityFilter.noMovement
+        ? byAllocation
+              .where(
+                (item) =>
+                    item.allocatedAmount > 0 &&
+                    item.totalReserved == 0 &&
+                    item.totalSpent == 0,
+              )
+              .toList()
+        : byAllocation;
 
     filtered.sort((a, b) => _sortMode.compare(a, b, _selectedMonth));
     return filtered;
@@ -461,6 +506,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _exportHtml(
     List<SectionSummaryItem> items, {
     required List<_ReportColumn> visibleColumns,
+    required InstitutionSettingsItem? institutionSettings,
     required bool openAfterExport,
   }) async {
     final path = await _exportService.exportSectionSummaryHtml(
@@ -468,6 +514,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       filters: _activeFilterLabels(),
       selectedMonth: _selectedMonth,
       visibleColumns: visibleColumns.map((column) => column.key).toSet(),
+      institutionSettings: institutionSettings,
       openAfterExport: openAfterExport,
     );
     _showMessage(
@@ -478,12 +525,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   Future<void> _exportXlsx(
     List<SectionSummaryItem> items, {
     required List<_ReportColumn> visibleColumns,
+    required InstitutionSettingsItem? institutionSettings,
   }) async {
     final path = await _exportService.exportSectionSummaryXlsx(
       items: items,
       filters: _activeFilterLabels(),
       selectedMonth: _selectedMonth,
       visibleColumns: visibleColumns.map((column) => column.key).toSet(),
+      institutionSettings: institutionSettings,
     );
     _showMessage('تم تصدير ملف Excel: $path');
   }
@@ -526,6 +575,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       'طريقة العرض': _grouping.label,
       'الترتيب': _sortMode.label,
       'إخفاء تخصيص 0': _hideZeroAllocation ? 'نعم' : '',
+      'الحركة': _activityFilter == _ReportActivityFilter.noMovement
+          ? 'أبواب بلا حركة'
+          : '',
     };
   }
 
@@ -677,6 +729,8 @@ enum _ReportGrouping {
 
   final String label;
 }
+
+enum _ReportActivityFilter { all, noMovement }
 
 enum _ReportSort {
   sectionCodeAsc('رمز الباب تصاعدي'),

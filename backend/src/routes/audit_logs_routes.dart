@@ -9,5 +9,12 @@ void registerAuditLogsRoutes(
   AuditLogsController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/audit-logs', protectedRoute(jwtService, controller.list));
+  router.get(
+    '/api/audit-logs',
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.viewAuditLogs,
+    ),
+  );
 }

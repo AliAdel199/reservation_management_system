@@ -14,6 +14,7 @@ abstract final class PermissionCodes {
   static const manageSettings = 'manage_settings';
   static const viewReports = 'view_reports';
   static const exportReports = 'export_reports';
+  static const viewAuditLogs = 'view_audit_logs';
 }
 
 Handler protectedRoute(
@@ -78,6 +79,17 @@ bool _hasPermission(String rawRoleCode, String permission) {
     }.contains(roleCode);
   }
 
+  if (permission == PermissionCodes.viewAuditLogs) {
+    // تعليق عربي: سجل الإجراءات يحتوي تفاصيل حساسة، لذلك لا يظهر للمعاينة أو مدخل البيانات.
+    return {
+      'ADMIN',
+      'FINANCE_MANAGER',
+      'FINANCIAL_MANAGER',
+      'REVIEWER',
+      'FINANCIAL_AUDITOR',
+    }.contains(roleCode);
+  }
+
   if (permission == PermissionCodes.modifyRecords ||
       permission == PermissionCodes.manageSettings ||
       permission == PermissionCodes.exportReports) {
@@ -100,6 +112,8 @@ String _permissionMessage(String permission) {
       'Delete operations are allowed only for the super admin account.',
     PermissionCodes.manageUsers =>
       'User permissions can be managed only by the super admin account.',
+    PermissionCodes.viewAuditLogs =>
+      'Audit logs are not available for this account.',
     PermissionCodes.modifyRecords =>
       'This account has view-only access and cannot add or edit records.',
     _ => 'You do not have permission to perform this action.',

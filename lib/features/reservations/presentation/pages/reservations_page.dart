@@ -126,339 +126,376 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
 
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'الحجوزات',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'إدارة دورة الحجز من المسودة حتى الاعتماد مع متابعة الحالة وحجز المبالغ داخل السجل المالي.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              FilledButton.icon(
-                onPressed:
-                    canModify &&
-                        programsLookup.hasValue &&
-                        budgetSectionsLookup.hasValue
-                    ? () => _openCreateDialog(
-                        programsLookup.requireValue,
-                        budgetSectionsLookup.requireValue,
-                      )
-                    : null,
-                icon: const Icon(Icons.add),
-                label: const Text('إضافة حجز'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              SizedBox(
-                width: 260,
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'بحث بالرقم أو العنوان',
-                    prefixIcon: Icon(Icons.search),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'الحجوزات',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'إدارة دورة الحجز من المسودة حتى الاعتماد مع متابعة الحالة وحجز المبالغ داخل السجل المالي.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
                   ),
-                  onChanged: (_) => _scheduleApplyFilters(),
-                  onSubmitted: (_) => _applyFilters(),
                 ),
-              ),
-              SizedBox(
-                width: 200,
-                child: DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  initialValue: _selectedStatus,
-                  decoration: const InputDecoration(labelText: 'الحالة'),
-                  items: const [
-                    DropdownMenuItem(value: '', child: Text('كل الحالات')),
-                    DropdownMenuItem(value: 'reserved', child: Text('محجوز')),
-                    DropdownMenuItem(value: 'approved', child: Text('معتمد')),
-                    DropdownMenuItem(value: 'spent', child: Text('مصروف')),
-                    DropdownMenuItem(value: 'cancelled', child: Text('ملغي')),
-                  ],
-                  onChanged: (value) => _updateFilters(() {
-                    _selectedStatus = value == '' ? null : value;
-                  }),
+                FilledButton.icon(
+                  onPressed:
+                      canModify &&
+                          programsLookup.hasValue &&
+                          budgetSectionsLookup.hasValue
+                      ? () => _openCreateDialog(
+                          programsLookup.requireValue,
+                          budgetSectionsLookup.requireValue,
+                        )
+                      : null,
+                  icon: const Icon(Icons.add),
+                  label: const Text('إضافة حجز'),
                 ),
-              ),
-              SizedBox(
-                width: 220,
-                child: programsLookup.when(
-                  data: (programs) => DropdownButtonFormField<String>(
+              ],
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: 260,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      labelText: 'بحث بالرقم أو العنوان',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (_) => _scheduleApplyFilters(),
+                    onSubmitted: (_) => _applyFilters(),
+                  ),
+                ),
+                SizedBox(
+                  width: 200,
+                  child: DropdownButtonFormField<String>(
                     isExpanded: true,
-                    initialValue: programDropdownValue,
-                    decoration: const InputDecoration(labelText: 'البرنامج'),
+                    initialValue: _selectedStatus,
+                    decoration: const InputDecoration(labelText: 'الحالة'),
+                    items: const [
+                      DropdownMenuItem(value: '', child: Text('كل الحالات')),
+                      DropdownMenuItem(value: 'reserved', child: Text('محجوز')),
+                      DropdownMenuItem(value: 'approved', child: Text('معتمد')),
+                      DropdownMenuItem(value: 'spent', child: Text('مصروف')),
+                      DropdownMenuItem(value: 'cancelled', child: Text('ملغي')),
+                    ],
+                    onChanged: (value) => _updateFilters(() {
+                      _selectedStatus = value == '' ? null : value;
+                    }),
+                  ),
+                ),
+                SizedBox(
+                  width: 220,
+                  child: programsLookup.when(
+                    data: (programs) => DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      initialValue: programDropdownValue,
+                      decoration: const InputDecoration(labelText: 'البرنامج'),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: '',
+                          child: Text('كل البرامج'),
+                        ),
+                        ...programs.map(
+                          (program) => DropdownMenuItem<String>(
+                            value: program.id,
+                            child: Text(
+                              program.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) => _updateFilters(() {
+                        _selectedProgramId = value == '' ? null : value;
+                        _selectedBudgetSectionId = null;
+                      }),
+                    ),
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, __) => const Text('تعذر تحميل البرامج'),
+                  ),
+                ),
+                SizedBox(
+                  width: 220,
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    initialValue: sectionDropdownValue,
+                    decoration: const InputDecoration(labelText: 'الباب'),
                     items: [
                       const DropdownMenuItem<String>(
                         value: '',
-                        child: Text('كل البرامج'),
+                        child: Text('كل الأبواب'),
                       ),
-                      ...programs.map(
-                        (program) => DropdownMenuItem<String>(
-                          value: program.id,
+                      ...availableSections.map(
+                        (section) => DropdownMenuItem<String>(
+                          value: section.id,
                           child: Text(
-                            program.name,
+                            '${section.fullCode} - ${section.name}',
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
                     ],
                     onChanged: (value) => _updateFilters(() {
-                      _selectedProgramId = value == '' ? null : value;
-                      _selectedBudgetSectionId = null;
+                      _selectedBudgetSectionId = value == '' ? null : value;
                     }),
                   ),
-                  loading: () => const LinearProgressIndicator(),
-                  error: (_, __) => const Text('تعذر تحميل البرامج'),
                 ),
-              ),
-              SizedBox(
-                width: 220,
-                child: DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  initialValue: sectionDropdownValue,
-                  decoration: const InputDecoration(labelText: 'الباب'),
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: '',
-                      child: Text('كل الأبواب'),
-                    ),
-                    ...availableSections.map(
-                      (section) => DropdownMenuItem<String>(
-                        value: section.id,
-                        child: Text(
-                          '${section.fullCode} - ${section.name}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
+                _DateFilterField(
+                  label: 'من تاريخ',
+                  value: _dateFrom,
+                  formatter: _filterDateFormat,
                   onChanged: (value) => _updateFilters(() {
-                    _selectedBudgetSectionId = value == '' ? null : value;
+                    _dateFrom = value;
                   }),
                 ),
-              ),
-              _DateFilterField(
-                label: 'من تاريخ',
-                value: _dateFrom,
-                formatter: _filterDateFormat,
-                onChanged: (value) => _updateFilters(() {
-                  _dateFrom = value;
-                }),
-              ),
-              _DateFilterField(
-                label: 'إلى تاريخ',
-                value: _dateTo,
-                formatter: _filterDateFormat,
-                onChanged: (value) => _updateFilters(() {
-                  _dateTo = value;
-                }),
-              ),
-              OutlinedButton.icon(
-                onPressed: _resetFilters,
-                icon: const Icon(Icons.filter_alt_off_outlined),
-                label: const Text('مسح الفلاتر'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Card(
-              child: AsyncValueView(
-                value: reservationsState,
-                onRetry: () =>
-                    ref.read(reservationsControllerProvider.notifier).refresh(),
-                data: (state) {
-                  final summary = _ReservationPageSummary.fromItems(
-                    state.result.items,
-                  );
+                _DateFilterField(
+                  label: 'إلى تاريخ',
+                  value: _dateTo,
+                  formatter: _filterDateFormat,
+                  onChanged: (value) => _updateFilters(() {
+                    _dateTo = value;
+                  }),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _resetFilters,
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('مسح الفلاتر'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              height: 700,
+              child: Card(
+                child: AsyncValueView(
+                  value: reservationsState,
+                  onRetry: () => ref
+                      .read(reservationsControllerProvider.notifier)
+                      .refresh(),
+                  data: (state) {
+                    final summary = _ReservationPageSummary.fromItems(
+                      state.result.items,
+                    );
 
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            _SummaryCard(
-                              title: 'السجلات ضمن الفلترة',
-                              value: state.result.pagination.total.toString(),
-                              subtitle: 'إجمالي النتائج الحالية',
-                            ),
-                            _SummaryCard(
-                              title: 'مبلغ الصفحة الحالية',
-                              value: currency.format(summary.totalAmount),
-                              subtitle: 'لا يشمل الحجوزات الملغية',
-                            ),
-                            _SummaryCard(
-                              title: 'الحالة',
-                              value:
-                                  '${summary.reservedCount} محجوز / ${summary.approvedCount} معتمد',
-                              subtitle: 'حسب السجلات غير الملغية',
-                            ),
-                            _SummaryCard(
-                              title: 'الأرشيف',
-                              value: '${summary.cancelledCount} ملغي',
-                              subtitle: 'لا يدخل بالمجاميع المالية',
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: SfDataGrid(
-                          source: _ReservationsDataSource(
-                            items: state.result.items,
-                            formatter: currency,
-                            onDetails: (item) =>
-                                _showReservationDetails(item, currency),
-                            onEdit: canModify
-                                ? (item) async {
-                                    if (!programsLookup.hasValue ||
-                                        !budgetSectionsLookup.hasValue) {
-                                      return;
-                                    }
-                                    await _openEditDialog(
-                                      programsLookup.requireValue,
-                                      budgetSectionsLookup.requireValue,
-                                      item,
-                                    );
-                                  }
-                                : null,
-                            onSubmit: canModify ? _submitForReview : null,
-                            onApprove: canModify ? _approveReservation : null,
-                            onCancel: canModify ? _cancelReservation : null,
-                            onSpend: canModify
-                                ? _openExpenseForReservation
-                                : null,
-                            onDelete: canDelete ? _deleteReservation : null,
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _SummaryTitle(
+                                title: 'ملخص الحجوزات',
+                                subtitle:
+                                    'يعرض مبالغ الصفحة الحالية مع عدد النتائج حسب الفلاتر',
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  _SummaryCard(
+                                    title: 'السجلات',
+                                    value: state.result.pagination.total
+                                        .toString(),
+                                    // subtitle: 'إجمالي النتائج الحالية',
+                                  ),
+                                  _SummaryCard(
+                                    title: 'المحجوز',
+                                    value: currency.format(summary.totalAmount),
+                                    // subtitle: 'لا يشمل الحجوزات الملغية',
+                                  ),
+                                  _SummaryCard(
+                                    title: 'المصروف',
+                                    value: currency.format(summary.totalSpent),
+                                    // subtitle: 'حسب الصفحة الحالية',
+                                  ),
+                                  _SummaryCard(
+                                    title: 'المتبقي',
+                                    value: currency.format(
+                                      summary.totalRemaining,
+                                    ),
+                                    // subtitle: 'بعد احتساب الصرف',
+                                  ),
+                                  _SummaryCard(
+                                    title: 'الحالة',
+                                    value:
+                                        '${summary.reservedCount} محجوز / ${summary.approvedCount} معتمد',
+                                    // subtitle: 'حسب السجلات غير الملغية',
+                                  ),
+                                  _SummaryCard(
+                                    title: 'الأرشيف',
+                                    value: '${summary.cancelledCount} ملغي',
+                                    // subtitle: 'لا يدخل بالمجاميع المالية',
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          columnWidthMode: ColumnWidthMode.none,
-                          rowHeight: 62,
-                          headerRowHeight: 58,
-                          isScrollbarAlwaysShown: true,
-                          showHorizontalScrollbar: true,
-                          showVerticalScrollbar: true,
-                          horizontalScrollPhysics:
-                              const AlwaysScrollableScrollPhysics(),
-                          verticalScrollPhysics:
-                              const AlwaysScrollableScrollPhysics(),
-                          columns: [
-                            GridColumn(
-                              columnName: 'number',
-                              width: 120,
-                              label: const _GridHeader('رقم الحجز'),
-                            ),
-                            GridColumn(
-                              columnName: 'title',
-                              width: 210,
-                              label: const _GridHeader('الجهة المحجوز لها'),
-                            ),
-                            GridColumn(
-                              columnName: 'department',
-                              width: 150,
-                              label: const _GridHeader('القسم'),
-                            ),
-                            GridColumn(
-                              columnName: 'phone',
-                              width: 130,
-                              label: const _GridHeader('رقم الهاتف'),
-                            ),
-                            GridColumn(
-                              columnName: 'section_code',
-                              width: 130,
-                              label: const _GridHeader('رمز الباب'),
-                            ),
-                            GridColumn(
-                              columnName: 'section_name',
-                              width: 190,
-                              label: const _GridHeader('اسم الباب'),
-                            ),
-                            GridColumn(
-                              columnName: 'budget',
-                              width: 170,
-                              label: const _GridHeader('الميزانية'),
-                            ),
-                            GridColumn(
-                              columnName: 'amount',
-                              width: 120,
-                              label: const _GridHeader('المبلغ'),
-                            ),
-                            GridColumn(
-                              columnName: 'date',
-                              width: 130,
-                              label: const _GridHeader('تاريخ الحجز'),
-                            ),
-                            GridColumn(
-                              columnName: 'execution_note',
-                              width: 220,
-                              label: const _GridHeader('ملاحظة التنفيذ'),
-                            ),
-                            GridColumn(
-                              columnName: 'status',
-                              width: 180,
-                              label: const _GridHeader('الحالة'),
-                            ),
-                            GridColumn(
-                              columnName: 'spent',
-                              width: 120,
-                              label: const _GridHeader('المصروف'),
-                            ),
-                            GridColumn(
-                              columnName: 'remaining',
-                              width: 120,
-                              label: const _GridHeader('المتبقي'),
-                            ),
-                            GridColumn(
-                              columnName: 'actions',
-                              width: 170,
-                              label: const _GridHeader('إجراءات'),
-                            ),
-                          ],
                         ),
-                      ),
-                      _PaginationBar(
-                        page: state.result.pagination.page,
-                        totalPages: state.result.pagination.totalPages,
-                        total: state.result.pagination.total,
-                        onPrevious: state.result.pagination.page > 1
-                            ? () => ref
-                                  .read(reservationsControllerProvider.notifier)
-                                  .changePage(state.result.pagination.page - 1)
-                            : null,
-                        onNext:
-                            state.result.pagination.page <
-                                state.result.pagination.totalPages
-                            ? () => ref
-                                  .read(reservationsControllerProvider.notifier)
-                                  .changePage(state.result.pagination.page + 1)
-                            : null,
-                      ),
-                    ],
-                  );
-                },
+                        const Divider(height: 24),
+                        Expanded(
+                          child: SfDataGrid(
+                            source: _ReservationsDataSource(
+                              items: state.result.items,
+                              formatter: currency,
+                              onDetails: (item) =>
+                                  _showReservationDetails(item, currency),
+                              onEdit: canModify
+                                  ? (item) async {
+                                      if (!programsLookup.hasValue ||
+                                          !budgetSectionsLookup.hasValue) {
+                                        return;
+                                      }
+                                      await _openEditDialog(
+                                        programsLookup.requireValue,
+                                        budgetSectionsLookup.requireValue,
+                                        item,
+                                      );
+                                    }
+                                  : null,
+                              onSubmit: canModify ? _submitForReview : null,
+                              onApprove: canModify ? _approveReservation : null,
+                              onCancel: canModify ? _cancelReservation : null,
+                              onSpend: canModify
+                                  ? _openExpenseForReservation
+                                  : null,
+                              onDelete: canDelete ? _deleteReservation : null,
+                            ),
+                            columnWidthMode: ColumnWidthMode.none,
+                            rowHeight: 62,
+                            headerRowHeight: 58,
+                            isScrollbarAlwaysShown: true,
+                            showHorizontalScrollbar: true,
+                            showVerticalScrollbar: true,
+                            horizontalScrollPhysics:
+                                const AlwaysScrollableScrollPhysics(),
+                            verticalScrollPhysics:
+                                const AlwaysScrollableScrollPhysics(),
+                            columns: [
+                              GridColumn(
+                                columnName: 'number',
+                                width: 120,
+                                label: const _GridHeader('رقم الحجز'),
+                              ),
+                              GridColumn(
+                                columnName: 'title',
+                                width: 210,
+                                label: const _GridHeader('الجهة المحجوز لها'),
+                              ),
+                              GridColumn(
+                                columnName: 'department',
+                                width: 150,
+                                label: const _GridHeader('القسم'),
+                              ),
+                              GridColumn(
+                                columnName: 'phone',
+                                width: 130,
+                                label: const _GridHeader('رقم الهاتف'),
+                              ),
+                              GridColumn(
+                                columnName: 'section_code',
+                                width: 130,
+                                label: const _GridHeader('رمز الباب'),
+                              ),
+                              GridColumn(
+                                columnName: 'section_name',
+                                width: 190,
+                                label: const _GridHeader('اسم الباب'),
+                              ),
+                              GridColumn(
+                                columnName: 'budget',
+                                width: 170,
+                                label: const _GridHeader('الميزانية'),
+                              ),
+                              GridColumn(
+                                columnName: 'amount',
+                                width: 120,
+                                label: const _GridHeader('المبلغ'),
+                              ),
+                              GridColumn(
+                                columnName: 'date',
+                                width: 130,
+                                label: const _GridHeader('تاريخ الحجز'),
+                              ),
+                              GridColumn(
+                                columnName: 'execution_note',
+                                width: 220,
+                                label: const _GridHeader('ملاحظة التنفيذ'),
+                              ),
+                              GridColumn(
+                                columnName: 'status',
+                                width: 180,
+                                label: const _GridHeader('الحالة'),
+                              ),
+                              GridColumn(
+                                columnName: 'spent',
+                                width: 120,
+                                label: const _GridHeader('المصروف'),
+                              ),
+                              GridColumn(
+                                columnName: 'remaining',
+                                width: 120,
+                                label: const _GridHeader('المتبقي'),
+                              ),
+                              GridColumn(
+                                columnName: 'actions',
+                                width: 170,
+                                label: const _GridHeader('إجراءات'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        _PaginationBar(
+                          page: state.result.pagination.page,
+                          totalPages: state.result.pagination.totalPages,
+                          total: state.result.pagination.total,
+                          onPrevious: state.result.pagination.page > 1
+                              ? () => ref
+                                    .read(
+                                      reservationsControllerProvider.notifier,
+                                    )
+                                    .changePage(
+                                      state.result.pagination.page - 1,
+                                    )
+                              : null,
+                          onNext:
+                              state.result.pagination.page <
+                                  state.result.pagination.totalPages
+                              ? () => ref
+                                    .read(
+                                      reservationsControllerProvider.notifier,
+                                    )
+                                    .changePage(
+                                      state.result.pagination.page + 1,
+                                    )
+                              : null,
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1476,12 +1513,16 @@ class _ActionLabel extends StatelessWidget {
 class _ReservationPageSummary {
   const _ReservationPageSummary({
     required this.totalAmount,
+    required this.totalSpent,
+    required this.totalRemaining,
     required this.reservedCount,
     required this.approvedCount,
     required this.cancelledCount,
   });
 
   final double totalAmount;
+  final double totalSpent;
+  final double totalRemaining;
   final int reservedCount;
   final int approvedCount;
   final int cancelledCount;
@@ -1495,6 +1536,14 @@ class _ReservationPageSummary {
       totalAmount: activeItems.fold<double>(
         0,
         (sum, item) => sum + item.reservedAmount,
+      ),
+      totalSpent: activeItems.fold<double>(
+        0,
+        (sum, item) => sum + item.spentAmount,
+      ),
+      totalRemaining: activeItems.fold<double>(
+        0,
+        (sum, item) => sum + item.remainingAmount,
       ),
       reservedCount: activeItems
           .where(
@@ -1513,45 +1562,50 @@ class _ReservationPageSummary {
   }
 }
 
+class _SummaryTitle extends StatelessWidget {
+  const _SummaryTitle({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF123B56),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(subtitle, style: theme.textTheme.bodySmall),
+      ],
+    );
+  }
+}
+
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-  });
+  const _SummaryCard({required this.title, required this.value});
 
   final String title;
   final String value;
-  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
-      width: 220,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFFF7FAFC),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFD7E2EC)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF123B56),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(subtitle, style: theme.textTheme.bodySmall),
-        ],
-      ),
+      child: Text("$title : $value", style: theme.textTheme.titleSmall),
     );
   }
 }

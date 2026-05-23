@@ -22,6 +22,7 @@ VALUES
   ('cancel_expense', 'إلغاء صرف', 'السماح بإلغاء المصروفات'),
   ('view_reports', 'عرض التقارير', 'السماح بعرض التقارير'),
   ('export_reports', 'تصدير التقارير', 'السماح بتصدير التقارير'),
+  ('view_audit_logs', 'عرض سجل الإجراءات', 'السماح بمتابعة سجل الإجراءات'),
   ('manage_users', 'إدارة المستخدمين', 'السماح بإدارة المستخدمين والصلاحيات'),
   ('manage_settings', 'إدارة الإعدادات', 'السماح بإدارة السنوات المالية وأنواع الميزانيات')
 ON CONFLICT (code) DO UPDATE
@@ -46,7 +47,8 @@ JOIN permissions p ON p.code IN (
   'create_expense',
   'cancel_expense',
   'view_reports',
-  'export_reports'
+  'export_reports',
+  'view_audit_logs'
 )
 WHERE r.code IN ('FINANCE_MANAGER', 'financial_manager')
 ON CONFLICT DO NOTHING;
@@ -56,7 +58,8 @@ SELECT r.id, p.id
 FROM roles r
 JOIN permissions p ON p.code IN (
   'approve_reservation',
-  'view_reports'
+  'view_reports',
+  'view_audit_logs'
 )
 WHERE r.code IN ('REVIEWER', 'financial_auditor')
 ON CONFLICT DO NOTHING;

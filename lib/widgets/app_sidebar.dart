@@ -13,6 +13,8 @@ class AppSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final canManageUsers = user?.canManageUsers ?? false;
+    final canViewAuditLogs = user?.canViewAuditLogs ?? false;
+    final canUseDataExchange = user?.canUseDataExchange ?? false;
 
     return Container(
       width: 260,
@@ -127,19 +129,22 @@ class AppSidebar extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
-                _NavItem(
-                  title: 'سجل الإجراءات',
-                  icon: Icons.history_edu_outlined,
-                  selected: currentLocation == '/audit-logs',
-                  onTap: () => context.go('/audit-logs'),
-                ),
-                const SizedBox(height: 12),
-                _NavItem(
-                  title: 'استيراد/تصدير',
-                  icon: Icons.import_export_outlined,
-                  selected: currentLocation == '/data-exchange',
-                  onTap: () => context.go('/data-exchange'),
-                ),
+                if (canViewAuditLogs) ...[
+                  _NavItem(
+                    title: 'سجل الإجراءات',
+                    icon: Icons.history_edu_outlined,
+                    selected: currentLocation == '/audit-logs',
+                    onTap: () => context.go('/audit-logs'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (canUseDataExchange)
+                  _NavItem(
+                    title: 'استيراد/تصدير',
+                    icon: Icons.import_export_outlined,
+                    selected: currentLocation == '/data-exchange',
+                    onTap: () => context.go('/data-exchange'),
+                  ),
               ],
             ),
           ),

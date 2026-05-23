@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:intl/intl.dart';
 
+import '../../institution/models/institution_settings_item.dart';
 import '../models/section_summary_item.dart';
 
 class ReportExportService {
@@ -14,6 +15,7 @@ class ReportExportService {
     required Map<String, String> filters,
     required int selectedMonth,
     Set<String>? visibleColumns,
+    InstitutionSettingsItem? institutionSettings,
     required bool openAfterExport,
   }) async {
     final file = await _buildReportFile('section_summary', 'html');
@@ -23,6 +25,7 @@ class ReportExportService {
         filters: filters,
         selectedMonth: selectedMonth,
         visibleColumns: visibleColumns,
+        institutionSettings: institutionSettings,
       ),
       encoding: utf8,
     );
@@ -93,6 +96,7 @@ class ReportExportService {
     required Map<String, String> filters,
     required int selectedMonth,
     Set<String>? visibleColumns,
+    InstitutionSettingsItem? institutionSettings,
   }) async {
     final file = await _buildReportFile('section_summary', 'xlsx');
     final excel = Excel.createExcel();
@@ -132,6 +136,13 @@ class ReportExportService {
       }),
     );
 
+    _writeXlsxSignatures(
+      sheet,
+      startRow: items.length + 4,
+      columnsLength: columns.length,
+      institutionSettings: institutionSettings,
+    );
+
     if (excel.sheets.containsKey('Sheet1')) {
       excel.delete('Sheet1');
     }
@@ -150,27 +161,17 @@ class ReportExportService {
     required Map<String, String> filters,
     required int selectedMonth,
     Set<String>? visibleColumns,
+    InstitutionSettingsItem? institutionSettings,
   }) {
     final currency = NumberFormat.decimalPattern('ar_IQ');
     final printedAt = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+    final reportTitle = _reportTitle(institutionSettings);
+    final institutionLines = _institutionHeaderLines(institutionSettings);
+    final signaturesHtml = _buildSignaturesHtml(institutionSettings);
 
     final totals = _ReportTotals.fromItems(items, selectedMonth);
     final monthName = _reportMonthName(filters);
     final columns = _visibleExportColumns(visibleColumns);
-    final filterBadges = filters.entries
-        // تعليق عربي: الترويسة الرسمية للطباعة تعرض فقط السنة والشهر،
-        // أما بقية خيارات العرض فهي للتحكم بالجدول داخل النظام.
-        .where(
-          (entry) =>
-              entry.value.trim().isNotEmpty &&
-              (entry.key == 'السنة المالية' || entry.key == 'الشهر'),
-        )
-        .map(
-          (entry) =>
-              '<span class="badge">${_escape(entry.key)}: ${_escape(entry.value)}</span>',
-        )
-        .join('');
-
     final headerCells = columns
         .map(
           (column) => '<th>${_escape(_columnHeader(column, monthName))}</th>',
@@ -207,7 +208,7 @@ class ReportExportService {
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <title>تقرير ملخص الباب</title>
+  <title>${_escape(reportTitle)}</title>
   <style>
     @page { size: A4 landscape; margin: 12mm; }
     body {
@@ -218,15 +219,32 @@ class ReportExportService {
       margin: 0;
     }
     .header {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr 1.35fr 1fr;
+      gap: 18px;
       align-items: flex-start;
       border-bottom: 3px solid #0f4c75;
       padding-bottom: 12px;
       margin-bottom: 14px;
     }
+    .institution-block {
+      text-align: right;
+      font-size: 12px;
+      line-height: 1.9;
+      color: #263645;
+    }
+    .institution-block .label {
+      color: #52616f;
+      font-weight: 700;
+      display: inline-block;
+      min-width: 52px;
+    }
+    .title {
+      text-align: center;
+      align-self: center;
+    }
     .title h1 { margin: 0 0 6px; font-size: 24px; color: #0b2d45; }
-    .title p { margin: 0; color: #52616f; }
+    .title p { margin: 0; color: #52616f; font-size: 13px; }
     .meta { text-align: left; font-size: 12px; color: #52616f; line-height: 1.8; }
     .print-note {
       margin: 0 12px 12px;
@@ -235,16 +253,6 @@ class ReportExportService {
       border: 1px solid #f0c36a;
       border-radius: 10px;
       padding: 8px 12px;
-      font-size: 12px;
-    }
-    .filters { margin: 10px 0 14px; }
-    .badge {
-      display: inline-block;
-      border: 1px solid #c9d6df;
-      background: #f5f8fb;
-      border-radius: 999px;
-      padding: 5px 10px;
-      margin: 3px;
       font-size: 12px;
     }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
@@ -264,7 +272,32 @@ class ReportExportService {
     td { text-align: center; }
     tfoot td { font-weight: 800; background: #eef5f9; }
     .negative { color: #b42318; background: #fde8e8; }
-    .footer {
+    .report-footer {
+      margin-top: 26px;
+      page-break-inside: avoid;
+    }
+    .signatures {
+      margin-top: 0;
+      direction: ltr;
+      page-break-inside: avoid;
+    }
+    .signature-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 12px;
+    }
+    .signature-card {
+      // border-top: 1px solid #333;
+      padding-top: 8px;
+      min-height: 92px;
+      text-align: center;
+      font-size: 12px;
+      direction: rtl;
+    }
+    .signature-space { height: 32px; }
+    .signature-title { font-weight: 700; min-height: 18px; }
+    .signature-name { margin-top: 3px; min-height: 18px; }
+    .footer-note {
       margin-top: 18px;
       display: flex;
       justify-content: space-between;
@@ -281,16 +314,18 @@ class ReportExportService {
   <button class="no-print" onclick="window.print()" style="margin: 12px; padding: 8px 18px;">طباعة التقرير</button>
   <div class="no-print print-note">إذا ظهر مسار الملف أسفل الورقة من نافذة الطباعة، ألغِ خيار Headers and footers في إعدادات Chrome.</div>
   <section class="header">
+    <div class="institution-block">
+      ${institutionLines.map((line) => '<div><span class="label">${_escape(line.$1)}:</span> ${_escape(line.$2)}</div>').join('')}
+    </div>
     <div class="title">
-      <h1>تقرير ملخص الباب</h1>
-      <p>نظام إدارة الحجوزات المالية الحكومية</p>
+      <h1>${_escape(reportTitle)}</h1>
+      <p>${_escape(institutionSettings?.documentHeader?.trim().isNotEmpty == true ? institutionSettings!.documentHeader! : 'نظام إدارة الحجوزات المالية الحكومية')}</p>
     </div>
     <div class="meta">
       <div>تاريخ الطباعة: $printedAt</div>
       <div>عدد السجلات: ${items.length}</div>
     </div>
   </section>
-  <section class="filters">$filterBadges</section>
   <table>
     <thead>
       <tr>
@@ -304,13 +339,95 @@ class ReportExportService {
       </tr>
     </tfoot>
   </table>
-  <section class="footer">
-    <span>إعداد النظام المالي الحكومي</span>
-    <span>يعتمد التقرير على سجل الحركات المالية Ledger</span>
+  <section class="report-footer">
+    $signaturesHtml
+
   </section>
 </body>
 </html>
 ''';
+  }
+
+  String _reportTitle(InstitutionSettingsItem? settings) {
+    final title = settings?.reportTitle?.trim();
+    return title == null || title.isEmpty ? 'تقرير ملخص الباب' : title;
+  }
+
+  List<(String, String)> _institutionHeaderLines(
+    InstitutionSettingsItem? settings,
+  ) {
+    if (settings == null) return const <(String, String)>[];
+
+    (String, String)? line(String label, String? value) {
+      final text = value?.trim();
+      if (text == null || text.isEmpty) return null;
+      return (label, text);
+    }
+
+    return [
+      line('الوزارة', settings.ministryName),
+      line('الدائرة', settings.departmentName),
+      line('القسم', settings.sectionName),
+      line('الشعبة', settings.divisionName),
+    ].whereType<(String, String)>().toList();
+  }
+
+  String _buildSignaturesHtml(InstitutionSettingsItem? settings) {
+    if (settings == null || !settings.showReportSignatures) return '';
+    final signatures = settings.reportSignatures
+        .where((signature) => signature.hasValue)
+        .take(5)
+        .toList();
+    if (signatures.isEmpty) return '';
+
+    final cards = signatures
+        .map((signature) {
+          final title = signature.title?.trim();
+          final name = signature.name?.trim();
+          final signatureNote = signature.location?.trim();
+          return '''
+      <div class="signature-card">
+        <div class="signature-space"></div>
+        <div class="signature-title">${_escape(title?.isNotEmpty == true ? title! : '')}</div>
+        <div class="signature-name">${_escape(name?.isNotEmpty == true ? name! : '')}</div>
+        <div class="signature-note">${_escape(signatureNote?.isNotEmpty == true ? signatureNote! : '')}</div>
+      </div>
+''';
+        })
+        .join('');
+
+    return '''
+  <section class="signatures">
+    <div class="signature-grid">$cards</div>
+  </section>
+''';
+  }
+
+  void _writeXlsxSignatures(
+    Sheet sheet, {
+    required int startRow,
+    required int columnsLength,
+    InstitutionSettingsItem? institutionSettings,
+  }) {
+    if (institutionSettings == null ||
+        !institutionSettings.showReportSignatures) {
+      return;
+    }
+    final signatures = institutionSettings.reportSignatures
+        .where((signature) => signature.hasValue)
+        .take(5)
+        .toList();
+    if (signatures.isEmpty) return;
+
+    for (var index = 0; index < signatures.length; index++) {
+      final signature = signatures[index];
+      final emptyCells = columnsLength > 2 ? columnsLength - 2 : 0;
+      _writeRow(sheet, startRow + index, [
+        _textValue(signature.title ?? ''),
+        _textValue(signature.name ?? ''),
+        ...List.generate(emptyCells, (_) => _textValue('')),
+      ]);
+    }
   }
 
   Future<File> _buildReportFile(String name, String extension) async {

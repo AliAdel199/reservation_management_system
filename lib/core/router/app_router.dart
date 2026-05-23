@@ -85,7 +85,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/reports',
-            builder: (context, state) => const ReportsPage(),
+            builder: (context, state) => ReportsPage(
+              initialActivityFilter: state.uri.queryParameters['activity'],
+            ),
           ),
           GoRoute(
             path: '/institution',
@@ -108,7 +110,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     redirect: (context, state) {
       final location = state.matchedLocation;
-      final isAuthenticated = authState.asData?.value != null;
+      final session = authState.asData?.value;
+      final user = session?.user;
+      final isAuthenticated = session != null;
       final isLoading = authState.isLoading;
       final isLoginRoute = location == '/login';
       final isSplashRoute = location == '/splash';
@@ -123,6 +127,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (!isLoading && isAuthenticated && (isLoginRoute || isSplashRoute)) {
+        return '/dashboard';
+      }
+
+      if (!isLoading &&
+          isAuthenticated &&
+          location == '/users' &&
+          !(user?.canManageUsers ?? false)) {
+        return '/dashboard';
+      }
+
+      if (!isLoading &&
+          isAuthenticated &&
+          location == '/audit-logs' &&
+          !(user?.canViewAuditLogs ?? false)) {
+        return '/dashboard';
+      }
+
+      if (!isLoading &&
+          isAuthenticated &&
+          location == '/data-exchange' &&
+          !(user?.canUseDataExchange ?? false)) {
         return '/dashboard';
       }
 

@@ -7,6 +7,7 @@ class DashboardSummary {
     required this.disposableBalance,
     required this.reservationRate,
     required this.spendingRate,
+    required this.noMovementSectionsCount,
     this.balanceAlerts = const [],
   });
 
@@ -17,6 +18,7 @@ class DashboardSummary {
   final double disposableBalance;
   final double reservationRate;
   final double spendingRate;
+  final int noMovementSectionsCount;
   final List<DashboardBalanceAlert> balanceAlerts;
 
   Map<String, dynamic> toJson() {
@@ -28,6 +30,7 @@ class DashboardSummary {
       'disposable_balance': disposableBalance,
       'reservation_rate': reservationRate,
       'spending_rate': spendingRate,
+      'no_movement_sections_count': noMovementSectionsCount,
       'balance_alerts': balanceAlerts.map((alert) => alert.toJson()).toList(),
     };
   }

@@ -1,6 +1,6 @@
 -- Reservation Management System - Customer Database Setup
 -- Generated from project migrations and seeds. Run once on customer PostgreSQL database.
--- آخر تحديث: يشمل جميع تعديلات قاعدة البيانات حتى migration رقم 012.
+-- آخر تحديث: يشمل جميع تعديلات قاعدة البيانات حتى migration رقم 014.
 -- ملاحظة عربية: التمويل الشهري معلّق حالياً، والتخصيص المعتمد هو التخصيص السنوي للأبواب.
 -- مصادر الملف:
 -- 001_initial_schema.sql
@@ -14,6 +14,8 @@
 -- 008_backfill_financial_transaction_scope.sql
 -- 009_suspend_monthly_fundings_restore_annual_allocation.sql
 -- 012_release_partial_spent_reservation_remainder.sql
+-- 013_institution_report_signatures.sql
+-- 014_institution_report_title.sql
 -- 001_reference_data.sql
 -- 002_financial_foundation_data.sql
 
@@ -781,6 +783,8 @@ CREATE TABLE IF NOT EXISTS institution_settings (
   name VARCHAR(250) NOT NULL DEFAULT 'المؤسسة الحكومية',
   ministry_name VARCHAR(250),
   department_name VARCHAR(250),
+  section_name VARCHAR(250),
+  division_name VARCHAR(250),
   address TEXT,
   phone VARCHAR(100),
   email VARCHAR(200),
@@ -788,6 +792,9 @@ CREATE TABLE IF NOT EXISTS institution_settings (
   logo_path TEXT,
   document_header TEXT,
   document_footer TEXT,
+  report_title VARCHAR(250),
+  show_report_signatures BOOLEAN NOT NULL DEFAULT FALSE,
+  report_signatures JSONB NOT NULL DEFAULT '[]'::jsonb,
   updated_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -812,6 +819,33 @@ SELECT
   'نظام إدارة الحجوزات المالية الحكومية',
   'يعتمد التقرير على سجل الحركات المالية Ledger'
 WHERE NOT EXISTS (SELECT 1 FROM institution_settings);
+
+-- ============================================================
+-- Source: database/migrations/013_institution_report_signatures.sql
+-- ============================================================
+
+-- تعليق عربي: بيانات القسم والشعبة وتواقيع التقارير الرسمية.
+ALTER TABLE institution_settings
+  ADD COLUMN IF NOT EXISTS section_name VARCHAR(250),
+  ADD COLUMN IF NOT EXISTS division_name VARCHAR(250),
+  ADD COLUMN IF NOT EXISTS show_report_signatures BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS report_signatures JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+UPDATE institution_settings
+SET report_signatures = '[]'::jsonb
+WHERE report_signatures IS NULL;
+
+-- ============================================================
+-- Source: database/migrations/014_institution_report_title.sql
+-- ============================================================
+
+-- تعليق عربي: عنوان التقرير الرسمي يظهر في منتصف هيدر الطباعة ويمكن تعديله من معلومات المؤسسة.
+ALTER TABLE institution_settings
+  ADD COLUMN IF NOT EXISTS report_title VARCHAR(250);
+
+UPDATE institution_settings
+SET report_title = COALESCE(NULLIF(report_title, ''), 'تقرير ملخص الباب')
+WHERE report_title IS NULL OR report_title = '';
 
 -- ============================================================
 -- Hierarchical budget sections
@@ -1034,6 +1068,7 @@ VALUES
   ('cancel_expense', 'إلغاء صرف', 'السماح بإلغاء المصروفات'),
   ('view_reports', 'عرض التقارير', 'السماح بعرض التقارير'),
   ('export_reports', 'تصدير التقارير', 'السماح بتصدير التقارير'),
+  ('view_audit_logs', 'عرض سجل الإجراءات', 'السماح بمتابعة سجل الإجراءات'),
   ('manage_users', 'إدارة المستخدمين', 'السماح بإدارة المستخدمين والصلاحيات'),
   ('manage_settings', 'إدارة الإعدادات', 'السماح بإدارة السنوات المالية وأنواع الميزانيات')
 ON CONFLICT (code) DO UPDATE
@@ -1058,7 +1093,8 @@ JOIN permissions p ON p.code IN (
   'create_expense',
   'cancel_expense',
   'view_reports',
-  'export_reports'
+  'export_reports',
+  'view_audit_logs'
 )
 WHERE r.code IN ('FINANCE_MANAGER', 'financial_manager')
 ON CONFLICT DO NOTHING;
@@ -1068,7 +1104,8 @@ SELECT r.id, p.id
 FROM roles r
 JOIN permissions p ON p.code IN (
   'approve_reservation',
-  'view_reports'
+  'view_reports',
+  'view_audit_logs'
 )
 WHERE r.code IN ('REVIEWER', 'financial_auditor')
 ON CONFLICT DO NOTHING;

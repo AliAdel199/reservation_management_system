@@ -801,7 +801,14 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       final reservationsRepository = ref.read(reservationsRepositoryProvider);
       final bytes = await File(path).readAsBytes();
       final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables.values.firstOrNull;
+      final sheet =
+          _findSheet(excel, const [
+            'الحجوزات',
+            'حجوزات',
+            'reservations',
+            'reservation',
+          ]) ??
+          excel.tables.values.firstOrNull;
       if (sheet == null || sheet.rows.length < 2) {
         throw const AppException(
           message: 'ملف Excel لا يحتوي حجوزات للاستيراد.',
@@ -810,9 +817,9 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
 
       var imported = 0;
       final errors = <String>[];
+      final headers = _headerMap(sheet.rows.first);
 
       for (var rowIndex = 1; rowIndex < sheet.rows.length; rowIndex++) {
-        final headers = _headerMap(sheet.rows.first);
         final row = sheet.rows[rowIndex];
         if (_rowIsEmpty(row)) continue;
 
@@ -955,6 +962,10 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
   Future<void> _exportReservationsData() async {
     await _runSafely(() async {
       final reservationsRepository = ref.read(reservationsRepositoryProvider);
+      final sections = await ref.read(allBudgetSectionsLookupProvider.future);
+      final sectionsById = {
+        for (final section in sections) section.id: section,
+      };
       final result = await reservationsRepository.fetchReservations(
         search: '',
         status: null,
@@ -976,6 +987,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       const sheetName = 'الحجوزات';
       final sheet = excel[sheetName];
       final headers = [
+        'السنة',
         'رقم الحجز',
         'الميزانية',
         'رمز الباب',
@@ -1003,10 +1015,12 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
 
       for (var index = 0; index < result.items.length; index++) {
         final reservation = result.items[index];
+        final section = sectionsById[reservation.budgetSectionId];
         _writeRow(sheet, index + 1, [
+          TextCellValue(_yearFromDate(reservation.reservationDate)),
           TextCellValue(reservation.reservationNumber),
           TextCellValue(reservation.programName),
-          TextCellValue(reservation.budgetSectionCode),
+          TextCellValue(section?.fullCode ?? reservation.budgetSectionCode),
           TextCellValue(reservation.budgetSectionName),
           TextCellValue(reservation.beneficiary ?? ''),
           TextCellValue(reservation.requesterDepartment ?? ''),
@@ -1025,7 +1039,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       }
 
       for (var index = 0; index < headers.length; index++) {
-        sheet.setColumnWidth(index, index == 5 || index == 15 ? 30 : 18);
+        sheet.setColumnWidth(index, index == 6 || index == 16 ? 30 : 18);
       }
       if (excel.sheets.containsKey('Sheet1')) {
         excel.delete('Sheet1');
@@ -1170,7 +1184,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
       'AUTO-$fiscalYear-${DateTime.now().microsecondsSinceEpoch}-$rowIndex';
 
   FiscalYearItem _findFiscalYear(List<FiscalYearItem> items, String value) {
-    final normalized = value.trim();
+    final normalized = _normalizeDigits(value).trim();
     if (normalized.isEmpty) {
       throw const AppException(message: 'السنة المالية مطلوبة.');
     }
@@ -1425,12 +1439,40 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
   }
 
   double _parseAmount(String value) {
-    final cleaned = value.replaceAll(',', '').replaceAll('د.ع', '').trim();
-    return double.tryParse(cleaned) ?? 0;
+    var cleaned = _normalizeDigits(value)
+        .replaceAll('د.ع', '')
+        .replaceAll('د.ع.', '')
+        .replaceAll('دينار', '')
+        .replaceAll('IQD', '')
+        .replaceAll(',', '')
+        .replaceAll('٬', '')
+        .replaceAll('،', '')
+        .replaceAll(RegExp(r'\s+'), '')
+        .trim();
+    if (cleaned.isEmpty || cleaned == '-' || cleaned == 'ـ') return 0;
+
+    var isNegative = false;
+    if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+      isNegative = true;
+      cleaned = cleaned.substring(1, cleaned.length - 1);
+    }
+    if (cleaned.endsWith('-')) {
+      isNegative = true;
+      cleaned = cleaned.substring(0, cleaned.length - 1);
+    }
+    if (cleaned.startsWith('-')) {
+      isNegative = true;
+      cleaned = cleaned.substring(1);
+    }
+
+    final parsed = double.tryParse(cleaned) ?? 0;
+    return isNegative ? -parsed : parsed;
   }
 
   int _parseInt(String value) {
-    final cleaned = value.replaceAll(',', '').trim();
+    final cleaned = _normalizeDigits(
+      value,
+    ).replaceAll(',', '').replaceAll('٬', '').replaceAll('،', '').trim();
     return int.tryParse(cleaned) ?? 0;
   }
 
@@ -1486,18 +1528,64 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
   }
 
   String? _normalizeDate(String value) {
-    final normalized = value.trim();
+    final normalized = _normalizeDigits(value).trim();
     if (normalized.isEmpty) return null;
     final parsed = DateTime.tryParse(normalized);
-    if (parsed == null) {
-      throw AppException(message: 'التاريخ غير صحيح: $normalized');
+    if (parsed != null) {
+      return DateFormat('yyyy-MM-dd').format(parsed);
     }
-    return DateFormat('yyyy-MM-dd').format(parsed);
+
+    for (final pattern in [
+      'yyyy/MM/dd',
+      'yyyy/M/d',
+      'dd/MM/yyyy',
+      'd/M/yyyy',
+      'dd-MM-yyyy',
+      'd-M-yyyy',
+    ]) {
+      try {
+        final formatted = DateFormat(pattern).parseStrict(normalized);
+        return DateFormat('yyyy-MM-dd').format(formatted);
+      } catch (_) {
+        // نجرب الصيغة التالية لأن ملفات Excel الحكومية تختلف بتنسيق التاريخ.
+      }
+    }
+
+    throw AppException(message: 'التاريخ غير صحيح: $normalized');
   }
 
   String _dateOnly(String? value) {
     if (value == null || value.trim().isEmpty) return '';
     return value.length >= 10 ? value.substring(0, 10) : value;
+  }
+
+  String _yearFromDate(String? value) {
+    final date = _dateOnly(value);
+    if (date.length >= 4) return date.substring(0, 4);
+    return DateTime.now().year.toString();
+  }
+
+  String _normalizeDigits(String value) {
+    const arabicIndic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const easternArabicIndic = [
+      '۰',
+      '۱',
+      '۲',
+      '۳',
+      '۴',
+      '۵',
+      '۶',
+      '۷',
+      '۸',
+      '۹',
+    ];
+    var normalized = value;
+    for (var index = 0; index < 10; index++) {
+      normalized = normalized
+          .replaceAll(arabicIndic[index], index.toString())
+          .replaceAll(easternArabicIndic[index], index.toString());
+    }
+    return normalized;
   }
 
   String _reservationStatusLabel(String status) {

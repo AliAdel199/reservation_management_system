@@ -216,28 +216,49 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _SummaryCard(
-                              title: 'السجلات ضمن الفلترة',
-                              value: state.result.pagination.total.toString(),
-                              subtitle: 'حسب البحث والفترة المختارة',
+                            const _SummaryTitle(
+                              title: 'ملخص الصرف',
+                              subtitle:
+                                  'يعرض مصروفات الصفحة الحالية حسب البحث والفترة المختارة',
                             ),
-                            _SummaryCard(
-                              title: 'مصروف الصفحة الحالية',
-                              value: currency.format(summary.totalPaid),
-                              subtitle: 'لا يشمل الصرف الملغي',
-                            ),
-                            _SummaryCard(
-                              title: 'الصرف الملغي',
-                              value: currency.format(summary.cancelledAmount),
-                              subtitle: '${summary.cancelledCount} سجل ملغي',
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                _SummaryCard(
+                                  title: 'السجلات ضمن الفلترة',
+                                  value: state.result.pagination.total
+                                      .toString(),
+                                  subtitle: 'حسب البحث والفترة المختارة',
+                                ),
+                                _SummaryCard(
+                                  title: 'الصرف الفعال',
+                                  value: summary.activeCount.toString(),
+                                  subtitle: 'سجلات غير ملغية',
+                                ),
+                                _SummaryCard(
+                                  title: 'مصروف الصفحة الحالية',
+                                  value: currency.format(summary.totalPaid),
+                                  subtitle: 'لا يشمل الصرف الملغي',
+                                ),
+                                _SummaryCard(
+                                  title: 'الصرف الملغي',
+                                  value: currency.format(
+                                    summary.cancelledAmount,
+                                  ),
+                                  subtitle:
+                                      '${summary.cancelledCount} سجل ملغي',
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
+                      const Divider(height: 24),
                       Expanded(
                         child: SfDataGrid(
                           source: _ExpensesDataSource(
@@ -436,16 +457,19 @@ class _DateFilterField extends StatelessWidget {
 class _ExpensePageSummary {
   const _ExpensePageSummary({
     required this.totalPaid,
+    required this.activeCount,
     required this.cancelledAmount,
     required this.cancelledCount,
   });
 
   final double totalPaid;
+  final int activeCount;
   final double cancelledAmount;
   final int cancelledCount;
 
   factory _ExpensePageSummary.fromItems(List<ExpenseItem> items) {
     var totalPaid = 0.0;
+    var activeCount = 0;
     var cancelledAmount = 0.0;
     var cancelledCount = 0;
 
@@ -455,13 +479,41 @@ class _ExpensePageSummary {
         cancelledCount++;
       } else {
         totalPaid += item.amount;
+        activeCount++;
       }
     }
 
     return _ExpensePageSummary(
       totalPaid: totalPaid,
+      activeCount: activeCount,
       cancelledAmount: cancelledAmount,
       cancelledCount: cancelledCount,
+    );
+  }
+}
+
+class _SummaryTitle extends StatelessWidget {
+  const _SummaryTitle({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF123B56),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(subtitle, style: theme.textTheme.bodySmall),
+      ],
     );
   }
 }
@@ -480,8 +532,8 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 220,
-      padding: const EdgeInsets.all(16),
+      width: 180,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF7FAFC),
         borderRadius: BorderRadius.circular(18),
@@ -491,16 +543,23 @@ class _SummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
               color: const Color(0xFF123B56),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ],
       ),
     );

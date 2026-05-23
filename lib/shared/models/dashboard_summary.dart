@@ -7,6 +7,7 @@ class DashboardSummary {
     required this.disposableBalance,
     required this.reservationRate,
     required this.spendingRate,
+    required this.noMovementSectionsCount,
     this.balanceAlerts = const [],
   });
 
@@ -17,12 +18,15 @@ class DashboardSummary {
   final double disposableBalance;
   final double reservationRate;
   final double spendingRate;
+  final int noMovementSectionsCount;
   final List<DashboardBalanceAlert> balanceAlerts;
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) {
     double parse(dynamic value) => value is num
         ? value.toDouble()
         : double.tryParse(value?.toString() ?? '0') ?? 0;
+    int parseInt(dynamic value) =>
+        value is int ? value : int.tryParse(value?.toString() ?? '0') ?? 0;
 
     final totalAllocation = parse(json['total_allocation']);
     final totalReserved = parse(json['total_reserved']);
@@ -63,6 +67,7 @@ class DashboardSummary {
       spendingRate: json.containsKey('spending_rate')
           ? parse(json['spending_rate'])
           : fallbackSpendingRate,
+      noMovementSectionsCount: parseInt(json['no_movement_sections_count']),
       balanceAlerts: balanceAlerts,
     );
   }

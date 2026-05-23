@@ -67,15 +67,60 @@ class DashboardRepository {
           WHERE ey.id IS NULL
             OR COALESCE(ft.fiscal_year_id, bs.fiscal_year_id) = ey.id
         ),
+        section_ledger AS (
+          SELECT
+            COALESCE(ft.section_id, ft.budget_section_id) AS section_id,
+            COALESCE(SUM(CASE
+              WHEN ft.transaction_type::text = 'reservation_hold' THEN ft.amount
+              WHEN ft.transaction_type::text IN ('reservation_release', 'reservation_cancel') THEN -ft.amount
+              ELSE 0
+            END), 0) AS total_reserved,
+            COALESCE(SUM(CASE
+              WHEN ft.transaction_type::text = 'expense_disbursement' THEN ft.amount
+              WHEN ft.transaction_type::text IN ('expense_reversal', 'expense_cancel') THEN -ft.amount
+              ELSE 0
+            END), 0) AS total_spent
+          FROM financial_transactions ft
+          CROSS JOIN effective_year ey
+          LEFT JOIN budget_sections bs
+            ON bs.id = COALESCE(ft.section_id, ft.budget_section_id)
+          WHERE COALESCE(ft.section_id, ft.budget_section_id) IS NOT NULL
+            AND (
+              ey.id IS NULL
+              OR COALESCE(ft.fiscal_year_id, bs.fiscal_year_id) = ey.id
+            )
+          GROUP BY COALESCE(ft.section_id, ft.budget_section_id)
+        ),
+        no_movement_sections AS (
+          SELECT COUNT(*)::int AS sections_count
+          FROM budget_sections bs
+          CROSS JOIN effective_year ey
+          LEFT JOIN allocation_fallback af ON af.section_id = bs.id
+          LEFT JOIN section_ledger sl ON sl.section_id = bs.id
+          WHERE bs.deleted_at IS NULL
+            AND bs.is_active = TRUE
+            AND bs.is_postable = TRUE
+            AND (ey.id IS NULL OR bs.fiscal_year_id = ey.id)
+            AND (
+              CASE
+                WHEN COALESCE(bs.allocated_amount, 0) > 0 THEN bs.allocated_amount
+                ELSE COALESCE(af.total_allocation, 0)
+              END
+            ) > 0
+            AND COALESCE(sl.total_reserved, 0) = 0
+            AND COALESCE(sl.total_spent, 0) = 0
+        ),
         totals AS (
           SELECT
             -- تعليق عربي: التخصيص العام رجع لمصدره السنوي من الأبواب،
             -- والتمويل الشهري معلّق حالياً لحين تثبيت فكرته المحاسبية.
             aa.total_allocation AS total_allocation,
             l.total_reserved,
-            l.total_spent
+            l.total_spent,
+            nms.sections_count AS no_movement_sections_count
           FROM annual_allocation aa
           CROSS JOIN ledger l
+          CROSS JOIN no_movement_sections nms
         )
         SELECT
           total_allocation,
@@ -83,6 +128,7 @@ class DashboardRepository {
           total_spent,
           total_allocation - total_reserved AS remaining_balance,
           total_allocation - total_reserved AS disposable_balance,
+          no_movement_sections_count,
           CASE
             WHEN total_allocation > 0 THEN ROUND((total_reserved / total_allocation) * 100, 2)
             ELSE 0
@@ -94,6 +140,7 @@ class DashboardRepository {
         FROM totals
         LIMIT 1
       '''),
+
       parameters: {'fiscal_year_id': fiscalYearId ?? ''},
     );
 
@@ -106,6 +153,7 @@ class DashboardRepository {
         disposableBalance: 0,
         reservationRate: 0,
         spendingRate: 0,
+        noMovementSectionsCount: 0,
       );
     }
 
@@ -129,6 +177,9 @@ class DashboardRepository {
       disposableBalance: parse(row['disposable_balance']),
       reservationRate: parse(row['reservation_rate']),
       spendingRate: parse(row['spending_rate']),
+      noMovementSectionsCount:
+          int.tryParse(row['no_movement_sections_count']?.toString() ?? '0') ??
+          0,
       balanceAlerts: alerts,
     );
   }

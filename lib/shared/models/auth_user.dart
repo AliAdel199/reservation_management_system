@@ -47,6 +47,29 @@ class AuthUser {
 
   bool get canManageUsers => isSuperAdmin;
 
+  bool get canUseDataExchange => isSuperAdmin || normalizedRoleCode == 'ADMIN';
+
+  bool get canExportReports =>
+      isSuperAdmin ||
+      {
+        'ADMIN',
+        'FINANCE_MANAGER',
+        'FINANCIAL_MANAGER',
+        'REVIEWER',
+        'FINANCIAL_AUDITOR',
+        'DATA_ENTRY',
+      }.contains(normalizedRoleCode);
+
+  bool get canViewAuditLogs =>
+      isSuperAdmin ||
+      {
+        'ADMIN',
+        'FINANCE_MANAGER',
+        'FINANCIAL_MANAGER',
+        'REVIEWER',
+        'FINANCIAL_AUDITOR',
+      }.contains(normalizedRoleCode);
+
   bool get isViewOnly => !canModifyRecords;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {

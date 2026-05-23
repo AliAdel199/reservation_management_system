@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:postgres/postgres.dart';
 
 import '../models/app_exception.dart';
@@ -31,6 +33,8 @@ class InstitutionRepository {
     required String name,
     required String? ministryName,
     required String? departmentName,
+    required String? sectionName,
+    required String? divisionName,
     required String? address,
     required String? phone,
     required String? email,
@@ -38,6 +42,9 @@ class InstitutionRepository {
     required String? logoPath,
     required String? documentHeader,
     required String? documentFooter,
+    required String? reportTitle,
+    required bool showReportSignatures,
+    required List<Map<String, dynamic>> reportSignatures,
     required String updatedBy,
   }) async {
     await session.execute(
@@ -47,6 +54,8 @@ class InstitutionRepository {
           name = @name,
           ministry_name = @ministry_name,
           department_name = @department_name,
+          section_name = @section_name,
+          division_name = @division_name,
           address = @address,
           phone = @phone,
           email = @email,
@@ -54,6 +63,9 @@ class InstitutionRepository {
           logo_path = @logo_path,
           document_header = @document_header,
           document_footer = @document_footer,
+          report_title = @report_title,
+          show_report_signatures = @show_report_signatures,
+          report_signatures = @report_signatures::jsonb,
           updated_by = @updated_by::uuid
         WHERE id = @id::uuid
       '''),
@@ -62,6 +74,8 @@ class InstitutionRepository {
         'name': name,
         'ministry_name': ministryName,
         'department_name': departmentName,
+        'section_name': sectionName,
+        'division_name': divisionName,
         'address': address,
         'phone': phone,
         'email': email,
@@ -69,6 +83,9 @@ class InstitutionRepository {
         'logo_path': logoPath,
         'document_header': documentHeader,
         'document_footer': documentFooter,
+        'report_title': reportTitle,
+        'show_report_signatures': showReportSignatures,
+        'report_signatures': jsonEncode(reportSignatures),
         'updated_by': updatedBy,
       },
     );

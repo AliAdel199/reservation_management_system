@@ -52,6 +52,8 @@ class InstitutionController {
         name: name,
         ministryName: _optional(body['ministry_name']),
         departmentName: _optional(body['department_name']),
+        sectionName: _optional(body['section_name']),
+        divisionName: _optional(body['division_name']),
         address: _optional(body['address']),
         phone: _optional(body['phone']),
         email: _optional(body['email']),
@@ -59,6 +61,9 @@ class InstitutionController {
         logoPath: _optional(body['logo_path']),
         documentHeader: _optional(body['document_header']),
         documentFooter: _optional(body['document_footer']),
+        reportTitle: _optional(body['report_title']),
+        showReportSignatures: body['show_report_signatures'] == true,
+        reportSignatures: _reportSignatures(body['report_signatures']),
         updatedBy: requestUser.id,
       );
 
@@ -87,6 +92,23 @@ class InstitutionController {
     final text = value?.toString().trim();
     if (text == null || text.isEmpty) return null;
     return text;
+  }
+
+  List<Map<String, dynamic>> _reportSignatures(dynamic value) {
+    if (value is! List) return const <Map<String, dynamic>>[];
+
+    final signatures = <Map<String, dynamic>>[];
+    for (final item in value) {
+      if (item is! Map) continue;
+      final title = _optional(item['title']);
+      final name = _optional(item['name']);
+      final location = _optional(item['location']);
+      if (title == null && name == null && location == null) continue;
+      signatures.add({'title': title, 'name': name, 'location': location});
+      if (signatures.length == 5) break;
+    }
+
+    return signatures;
   }
 
   RequestUser _requestUser(Request request) {
