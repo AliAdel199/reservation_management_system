@@ -17,6 +17,7 @@ import 'controllers/fiscal_years_controller.dart';
 import 'controllers/fundings_controller.dart';
 import 'controllers/health_controller.dart';
 import 'controllers/institution_controller.dart';
+import 'controllers/license_controller.dart';
 import 'controllers/monthly_fundings_controller.dart';
 import 'controllers/programs_controller.dart';
 import 'controllers/reports_controller.dart';
@@ -44,7 +45,9 @@ import 'services/jwt_service.dart';
 import 'services/password_service.dart';
 import 'middlewares/database_keep_alive_middleware.dart';
 import 'middlewares/error_middleware.dart';
+import 'middlewares/license_middleware.dart';
 import 'middlewares/security_headers_middleware.dart';
+import 'services/license_service.dart';
 
 Future<void> startServer() async {
   final config = AppConfig.fromEnvironment();
@@ -70,6 +73,7 @@ Future<void> startServer() async {
   final passwordService = PasswordService();
   final jwtService = JwtService(config);
   final auditService = AuditService();
+  final licenseService = LicenseService(config);
 
   final seeder = DatabaseSeeder(
     config: config,
@@ -97,6 +101,7 @@ Future<void> startServer() async {
       .addMiddleware(corsHeaders())
       .addMiddleware(errorMiddleware(logger))
       .addMiddleware(databaseKeepAliveMiddleware(database, logger))
+      .addMiddleware(licenseMiddleware(licenseService))
       .addMiddleware(securityHeadersMiddleware())
       .addHandler(
         buildAppRouter(
@@ -113,6 +118,7 @@ Future<void> startServer() async {
             institutionRepository: institutionRepository,
             auditService: auditService,
           ),
+          licenseController: LicenseController(licenseService: licenseService),
           usersController: UsersController(
             database: database,
             usersRepository: usersRepository,

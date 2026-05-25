@@ -16,6 +16,7 @@ import '../../features/institution/presentation/pages/institution_page.dart';
 import '../../features/programs/presentation/pages/programs_page.dart';
 import '../../features/reports/presentation/pages/reports_page.dart';
 import '../../features/reservations/presentation/pages/reservations_page.dart';
+import '../../features/settings/presentation/pages/api_connection_page.dart';
 import '../../features/users/presentation/pages/users_page.dart';
 import '../../layouts/app_shell.dart';
 
@@ -30,6 +31,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const _SplashPage(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
+      GoRoute(
+        path: '/api-settings',
+        builder: (context, state) => const ApiConnectionPage(),
+      ),
       ShellRoute(
         builder: (context, state, child) {
           return AppShell(currentLocation: state.matchedLocation, child: child);
@@ -94,6 +99,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const InstitutionPage(),
           ),
           GoRoute(
+            path: '/api-settings',
+            builder: (context, state) => const ApiConnectionPage(),
+          ),
+          GoRoute(
             path: '/users',
             builder: (context, state) => const UsersPage(),
           ),
@@ -116,13 +125,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLoading = authState.isLoading;
       final isLoginRoute = location == '/login';
       final isSplashRoute = location == '/splash';
+      final isApiSettingsRoute = location == '/api-settings';
 
       // تعليق عربي: نمنع التنقل قبل استعادة الجلسة حتى لا يظهر وميض بين الشاشات.
       if (isLoading && !isSplashRoute) {
         return '/splash';
       }
 
-      if (!isLoading && !isAuthenticated && !isLoginRoute) {
+      if (!isLoading &&
+          !isAuthenticated &&
+          !isLoginRoute &&
+          !isApiSettingsRoute) {
         return '/login';
       }
 

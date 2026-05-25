@@ -161,10 +161,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              Text(
-                                'الحساب الافتراضي بعد التهيئة: admin / Admin@123',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: colorScheme.primary),
+                              // Text(
+                              //   'الحساب الافتراضي بعد التهيئة: admin / Admin@123',
+                              //   style: Theme.of(context).textTheme.bodySmall
+                              //       ?.copyWith(color: colorScheme.primary),
+                              // ),
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: Alignment.center,
+                                child: TextButton.icon(
+                                  onPressed: isLoading
+                                      ? null
+                                      : () => context.go('/api-settings'),
+                                  icon: const Icon(
+                                    Icons.settings_ethernet,
+                                    size: 16,
+                                  ),
+                                  label: const Text('تغيير عنوان الخادم'),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    textStyle: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ),
                               ),
                             ],
                           ),

@@ -33,6 +33,15 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Customer/runtime license files. Keep private signing keys outside source control.
+backend/license.json
+backend/license_public.pem
+backend/license_private*.pem
+deploy/api/license.json
+deploy/api/license_public.pem
+deploy/api/license_private*.pem
+tools/license/private/
+
 # Symbolication related
 app.*.symbols
 

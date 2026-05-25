@@ -7,6 +7,7 @@ import '../../shared/models/auth_session.dart';
 class AppStorage {
   static const _tokenKey = 'access_token';
   static const _sessionKey = 'auth_session';
+  static const _apiBaseUrlKey = 'api_base_url';
 
   Future<SharedPreferences> get _prefs async => SharedPreferences.getInstance();
 
@@ -29,6 +30,21 @@ class AppStorage {
   Future<String?> readAccessToken() async {
     final prefs = await _prefs;
     return prefs.getString(_tokenKey);
+  }
+
+  Future<String?> readApiBaseUrl() async {
+    final prefs = await _prefs;
+    return prefs.getString(_apiBaseUrlKey);
+  }
+
+  Future<void> saveApiBaseUrl(String url) async {
+    final prefs = await _prefs;
+    await prefs.setString(_apiBaseUrlKey, url);
+  }
+
+  Future<void> clearApiBaseUrl() async {
+    final prefs = await _prefs;
+    await prefs.remove(_apiBaseUrlKey);
   }
 
   Future<void> clearSession() async {

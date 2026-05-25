@@ -281,8 +281,8 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
               ],
             ),
             const SizedBox(height: 16),
-            Container(
-              height: 700,
+            SizedBox(
+              height: 820,
               child: Card(
                 child: AsyncValueView(
                   value: reservationsState,
@@ -351,7 +351,8 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                           ),
                         ),
                         const Divider(height: 24),
-                        Expanded(
+                        SizedBox(
+                          height: 560,
                           child: SfDataGrid(
                             source: _ReservationsDataSource(
                               items: state.result.items,

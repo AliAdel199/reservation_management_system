@@ -276,15 +276,20 @@ class ReportExportService {
       margin-top: 26px;
       page-break-inside: avoid;
     }
+
+   
     .signatures {
       margin-top: 0;
       direction: ltr;
       page-break-inside: avoid;
     }
     .signature-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(120px, 1fr));
-      gap: 12px;
+         display: flex;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 12px;
+    justify-content: space-between;
+    padding-left: 50px;
+    padding-right: 50px;
     }
     .signature-card {
       // border-top: 1px solid #333;

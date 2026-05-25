@@ -40,6 +40,9 @@ DEFAULT_ADMIN_PASSWORD=$AdminPassword
 DEFAULT_ADMIN_FULL_NAME=$AdminFullName
 DEFAULT_ADMIN_EMAIL=$AdminEmail
 AUTO_SEED_ADMIN=true
+LICENSE_ENFORCEMENT=false
+LICENSE_FILE=license.json
+LICENSE_PUBLIC_KEY=license_public.pem
 "@
 
 $envPath = Join-Path $apiRoot ".env"

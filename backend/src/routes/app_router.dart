@@ -11,6 +11,7 @@ import '../controllers/fiscal_years_controller.dart';
 import '../controllers/fundings_controller.dart';
 import '../controllers/health_controller.dart';
 import '../controllers/institution_controller.dart';
+import '../controllers/license_controller.dart';
 import '../controllers/monthly_fundings_controller.dart';
 import '../controllers/programs_controller.dart';
 import '../controllers/reports_controller.dart';
@@ -27,6 +28,7 @@ import 'fiscal_years_routes.dart';
 import 'fundings_routes.dart';
 import 'health_routes.dart';
 import 'institution_routes.dart';
+import 'license_routes.dart';
 import 'programs_routes.dart';
 import 'reports_routes.dart';
 import 'reservations_routes.dart';
@@ -36,6 +38,7 @@ Handler buildAppRouter({
   required HealthController healthController,
   required AuthController authController,
   required InstitutionController institutionController,
+  required LicenseController licenseController,
   required UsersController usersController,
   required AuditLogsController auditLogsController,
   required DashboardController dashboardController,
@@ -53,6 +56,7 @@ Handler buildAppRouter({
   final router = Router();
 
   registerHealthRoutes(router, healthController);
+  registerLicenseRoutes(router, licenseController);
   registerAuthRoutes(router, authController, jwtService);
   registerInstitutionRoutes(router, institutionController, jwtService);
   registerUsersRoutes(router, usersController, jwtService);

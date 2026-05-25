@@ -120,6 +120,13 @@ class AppSidebar extends StatelessWidget {
                   onTap: () => context.go('/institution'),
                 ),
                 const SizedBox(height: 12),
+                _NavItem(
+                  title: 'إعداد الاتصال',
+                  icon: Icons.settings_ethernet_outlined,
+                  selected: currentLocation == '/api-settings',
+                  onTap: () => context.go('/api-settings'),
+                ),
+                const SizedBox(height: 12),
                 if (canManageUsers) ...[
                   _NavItem(
                     title: 'المستخدمون',

@@ -12,6 +12,9 @@ class AppConfig {
     required this.defaultAdminPassword,
     required this.defaultAdminFullName,
     required this.defaultAdminEmail,
+    required this.licenseEnforcementEnabled,
+    required this.licenseFilePath,
+    required this.licensePublicKeyPath,
   });
 
   final String appName;
@@ -24,6 +27,9 @@ class AppConfig {
   final String defaultAdminPassword;
   final String defaultAdminFullName;
   final String defaultAdminEmail;
+  final bool licenseEnforcementEnabled;
+  final String licenseFilePath;
+  final String licensePublicKeyPath;
 
   factory AppConfig.fromEnvironment() {
     final env = DotEnv(includePlatformEnvironment: true, quiet: true)..load();
@@ -42,6 +48,11 @@ class AppConfig {
       defaultAdminFullName:
           env['DEFAULT_ADMIN_FULL_NAME'] ?? 'System Administrator',
       defaultAdminEmail: env['DEFAULT_ADMIN_EMAIL'] ?? 'admin@finance.local',
+      licenseEnforcementEnabled:
+          const bool.fromEnvironment('LICENSE_REQUIRED') ||
+          (env['LICENSE_ENFORCEMENT'] ?? 'false').toLowerCase() == 'true',
+      licenseFilePath: env['LICENSE_FILE'] ?? 'license.json',
+      licensePublicKeyPath: env['LICENSE_PUBLIC_KEY'] ?? 'license_public.pem',
     );
   }
 }

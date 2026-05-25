@@ -19,6 +19,11 @@ class ApiClient {
     _dio.interceptors.add(
       QueuedInterceptorsWrapper(
         onRequest: (options, handler) async {
+          final configuredBaseUrl = await _storage.readApiBaseUrl();
+          if (configuredBaseUrl != null && configuredBaseUrl.isNotEmpty) {
+            options.baseUrl = configuredBaseUrl;
+          }
+
           final token = await _storage.readAccessToken();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
