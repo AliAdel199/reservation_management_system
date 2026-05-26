@@ -9,6 +9,7 @@ import 'config/app_config.dart';
 import 'config/logger_config.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/audit_logs_controller.dart';
+import 'controllers/backups_controller.dart';
 import 'controllers/budget_sections_controller.dart';
 import 'controllers/budget_types_controller.dart';
 import 'controllers/dashboard_controller.dart';
@@ -41,6 +42,7 @@ import 'repositories/reservations_repository.dart';
 import 'repositories/users_repository.dart';
 import 'routes/app_router.dart';
 import 'services/audit_service.dart';
+import 'services/database_backup_service.dart';
 import 'services/jwt_service.dart';
 import 'services/password_service.dart';
 import 'middlewares/database_keep_alive_middleware.dart';
@@ -74,6 +76,7 @@ Future<void> startServer() async {
   final jwtService = JwtService(config);
   final auditService = AuditService();
   final licenseService = LicenseService(config);
+  final backupService = DatabaseBackupService(config);
 
   final seeder = DatabaseSeeder(
     config: config,
@@ -128,6 +131,11 @@ Future<void> startServer() async {
           auditLogsController: AuditLogsController(
             database: database,
             auditLogsRepository: auditLogsRepository,
+          ),
+          backupsController: BackupsController(
+            database: database,
+            backupService: backupService,
+            auditService: auditService,
           ),
           dashboardController: DashboardController(
             database: database,

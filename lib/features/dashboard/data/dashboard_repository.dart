@@ -99,4 +99,31 @@ class DashboardRepository {
       throw AppException.fromDioException(exception);
     }
   }
+
+  Future<DashboardAnalytics> fetchAnalytics({
+    String? fiscalYearId,
+    int limit = 8,
+  }) async {
+    try {
+      final response = await _apiClient.instance.get<Map<String, dynamic>>(
+        '/dashboard/analytics',
+        queryParameters: {
+          if (fiscalYearId != null && fiscalYearId.isNotEmpty)
+            'fiscal_year_id': fiscalYearId,
+          'limit': limit,
+        },
+      );
+      final payload = response.data?['data'];
+      if (payload is! Map<String, dynamic>) {
+        throw const AppException(
+          message: 'تعذر قراءة بيانات التحليلات من الخادم.',
+          code: 'INVALID_DASHBOARD_ANALYTICS_RESPONSE',
+        );
+      }
+
+      return DashboardAnalytics.fromJson(payload);
+    } on DioException catch (exception) {
+      throw AppException.fromDioException(exception);
+    }
+  }
 }

@@ -71,4 +71,23 @@ class DashboardController {
       data: {'items': cards.map((card) => card.toJson()).toList()},
     );
   }
+
+  Future<Response> analytics(Request request) async {
+    final fiscalYearId = request.url.queryParameters['fiscal_year_id'];
+    final limit = int.tryParse(request.url.queryParameters['limit'] ?? '') ?? 8;
+
+    final analytics = await _dashboardRepository.fetchAnalytics(
+      _database.connection,
+      fiscalYearId: fiscalYearId == null || fiscalYearId.trim().isEmpty
+          ? null
+          : fiscalYearId.trim(),
+      limit: limit,
+    );
+
+    return jsonResponse(
+      200,
+      message: 'Dashboard analytics retrieved successfully.',
+      data: analytics.toJson(),
+    );
+  }
 }

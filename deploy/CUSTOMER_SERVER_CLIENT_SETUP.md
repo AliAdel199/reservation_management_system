@@ -131,6 +131,55 @@ ReservationManagementAPI
 
 الخدمة تستخدم watchdog، يعني إذا توقف الـ API يحاول يشغله مرة ثانية تلقائياً.
 
+### 3.6.1 تفعيل النسخ الاحتياطي التلقائي
+
+النظام يدعم نسخ قاعدة البيانات يدوياً من صفحة `Backup واسترجاع` داخل البرنامج، ويدعم أيضاً مهمة تلقائية في Windows.
+
+قبل التفعيل تأكد أن `pg_dump` و `pg_restore` معروفات للنظام. إذا لم تكن ضمن PATH، عدل ملف:
+
+```text
+D:\reservation_management_system\deploy\api\.env
+```
+
+وأضف المسارات الكاملة، مثال:
+
+```text
+PG_DUMP_PATH=C:\Program Files\PostgreSQL\16\bin\pg_dump.exe
+PG_RESTORE_PATH=C:\Program Files\PostgreSQL\16\bin\pg_restore.exe
+BACKUP_DIR=backups
+BACKUP_RETENTION_DAYS=30
+```
+
+لتفعيل Backup يومي الساعة 02:00 صباحاً:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_system\deploy\scripts\install-backup-task.ps1" -InstallRoot "D:\reservation_management_system\deploy" -DailyAt "02:00"
+```
+
+ينشئ هذا الأمر Scheduled Task باسم:
+
+```text
+ReservationManagementDatabaseBackup
+```
+
+تشغيل Backup يدوي من PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_system\deploy\scripts\run-database-backup.ps1" -ApiRoot "D:\reservation_management_system\deploy\api"
+```
+
+حذف مهمة النسخ التلقائي:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_system\deploy\scripts\uninstall-backup-task.ps1"
+```
+
+مكان حفظ النسخ الافتراضي:
+
+```text
+D:\reservation_management_system\deploy\api\backups
+```
+
 ### 3.7 فتح منفذ API في Windows Firewall
 
 حتى الأجهزة الفرعية تقدر تتصل بالسيرفر، افتح منفذ `7070`:

@@ -11,6 +11,7 @@ abstract final class PermissionCodes {
   static const modifyRecords = 'modify_records';
   static const deleteRecords = 'delete_records';
   static const manageUsers = 'manage_users';
+  static const manageBackups = 'manage_backups';
   static const manageSettings = 'manage_settings';
   static const viewReports = 'view_reports';
   static const exportReports = 'export_reports';
@@ -61,7 +62,8 @@ bool _hasPermission(String rawRoleCode, String permission) {
   }
 
   if (permission == PermissionCodes.deleteRecords ||
-      permission == PermissionCodes.manageUsers) {
+      permission == PermissionCodes.manageUsers ||
+      permission == PermissionCodes.manageBackups) {
     // تعليق عربي: الحذف وإدارة صلاحيات المستخدمين محصوران بالسوبر أدمن فقط.
     return false;
   }
@@ -112,6 +114,8 @@ String _permissionMessage(String permission) {
       'Delete operations are allowed only for the super admin account.',
     PermissionCodes.manageUsers =>
       'User permissions can be managed only by the super admin account.',
+    PermissionCodes.manageBackups =>
+      'Database backup and restore is allowed only for the super admin account.',
     PermissionCodes.viewAuditLogs =>
       'Audit logs are not available for this account.',
     PermissionCodes.modifyRecords =>

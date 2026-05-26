@@ -7,8 +7,12 @@ param(
   [int]$ApiPort = 7070,
   [string]$AdminUsername = "admin",
   [string]$AdminPassword = "Admin@12345",
-  [string]$AdminFullName = "System Administrator",
-  [string]$AdminEmail = "admin@finance.local"
+  [string]$AdminFullName = "مدير النظام",
+  [string]$AdminEmail = "admin@finance.local",
+  [string]$BackupDir = "backups",
+  [string]$PgDumpPath = "pg_dump",
+  [string]$PgRestorePath = "pg_restore",
+  [int]$BackupRetentionDays = 30
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,6 +47,10 @@ AUTO_SEED_ADMIN=true
 LICENSE_ENFORCEMENT=false
 LICENSE_FILE=license.json
 LICENSE_PUBLIC_KEY=license_public.pem
+BACKUP_DIR=$BackupDir
+PG_DUMP_PATH=$PgDumpPath
+PG_RESTORE_PATH=$PgRestorePath
+BACKUP_RETENTION_DAYS=$BackupRetentionDays
 "@
 
 $envPath = Join-Path $apiRoot ".env"

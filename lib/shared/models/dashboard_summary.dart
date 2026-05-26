@@ -163,3 +163,149 @@ class DashboardSectionCard {
     );
   }
 }
+
+class DashboardAnalytics {
+  const DashboardAnalytics({
+    required this.programs,
+    required this.sections,
+    required this.monthly,
+    required this.topSpentSections,
+    required this.noMovementSections,
+  });
+
+  final List<DashboardAnalyticsItem> programs;
+  final List<DashboardAnalyticsItem> sections;
+  final List<DashboardMonthlyAnalyticsItem> monthly;
+  final List<DashboardAnalyticsItem> topSpentSections;
+  final List<DashboardNoMovementSection> noMovementSections;
+
+  factory DashboardAnalytics.fromJson(Map<String, dynamic> json) {
+    List<T> parseList<T>(
+      dynamic payload,
+      T Function(Map<String, dynamic> item) mapper,
+    ) {
+      if (payload is! List) return <T>[];
+      return payload
+          .whereType<Map>()
+          .map((item) => mapper(Map<String, dynamic>.from(item)))
+          .toList();
+    }
+
+    return DashboardAnalytics(
+      programs: parseList(json['programs'], DashboardAnalyticsItem.fromJson),
+      sections: parseList(json['sections'], DashboardAnalyticsItem.fromJson),
+      monthly: parseList(
+        json['monthly'],
+        DashboardMonthlyAnalyticsItem.fromJson,
+      ),
+      topSpentSections: parseList(
+        json['top_spent_sections'],
+        DashboardAnalyticsItem.fromJson,
+      ),
+      noMovementSections: parseList(
+        json['no_movement_sections'],
+        DashboardNoMovementSection.fromJson,
+      ),
+    );
+  }
+}
+
+class DashboardAnalyticsItem {
+  const DashboardAnalyticsItem({
+    required this.id,
+    required this.label,
+    this.subtitle,
+    required this.totalAllocation,
+    required this.totalReserved,
+    required this.totalSpent,
+    required this.remainingBalance,
+    required this.count,
+  });
+
+  final String id;
+  final String label;
+  final String? subtitle;
+  final double totalAllocation;
+  final double totalReserved;
+  final double totalSpent;
+  final double remainingBalance;
+  final int count;
+
+  factory DashboardAnalyticsItem.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '0') ?? 0;
+    int parseInt(dynamic value) =>
+        value is int ? value : int.tryParse(value?.toString() ?? '0') ?? 0;
+
+    return DashboardAnalyticsItem(
+      id: json['id']?.toString() ?? '',
+      label: json['label']?.toString() ?? '',
+      subtitle: json['subtitle']?.toString(),
+      totalAllocation: parseDouble(json['total_allocation']),
+      totalReserved: parseDouble(json['total_reserved']),
+      totalSpent: parseDouble(json['total_spent']),
+      remainingBalance: parseDouble(json['remaining_balance']),
+      count: parseInt(json['count']),
+    );
+  }
+}
+
+class DashboardMonthlyAnalyticsItem {
+  const DashboardMonthlyAnalyticsItem({
+    required this.month,
+    required this.label,
+    required this.totalReserved,
+    required this.totalSpent,
+  });
+
+  final int month;
+  final String label;
+  final double totalReserved;
+  final double totalSpent;
+
+  factory DashboardMonthlyAnalyticsItem.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '0') ?? 0;
+    int parseInt(dynamic value) =>
+        value is int ? value : int.tryParse(value?.toString() ?? '0') ?? 0;
+
+    return DashboardMonthlyAnalyticsItem(
+      month: parseInt(json['month']),
+      label: json['label']?.toString() ?? '',
+      totalReserved: parseDouble(json['total_reserved']),
+      totalSpent: parseDouble(json['total_spent']),
+    );
+  }
+}
+
+class DashboardNoMovementSection {
+  const DashboardNoMovementSection({
+    required this.sectionId,
+    required this.programName,
+    required this.sectionCode,
+    required this.sectionName,
+    required this.totalAllocation,
+  });
+
+  final String sectionId;
+  final String programName;
+  final String sectionCode;
+  final String sectionName;
+  final double totalAllocation;
+
+  factory DashboardNoMovementSection.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '0') ?? 0;
+
+    return DashboardNoMovementSection(
+      sectionId: json['section_id']?.toString() ?? '',
+      programName: json['program_name']?.toString() ?? '',
+      sectionCode: json['section_code']?.toString() ?? '',
+      sectionName: json['section_name']?.toString() ?? '',
+      totalAllocation: parseDouble(json['total_allocation']),
+    );
+  }
+}

@@ -13,6 +13,7 @@ class AppSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final canManageUsers = user?.canManageUsers ?? false;
+    final canManageBackups = user?.canManageBackups ?? false;
     final canViewAuditLogs = user?.canViewAuditLogs ?? false;
     final canUseDataExchange = user?.canUseDataExchange ?? false;
 
@@ -133,6 +134,15 @@ class AppSidebar extends StatelessWidget {
                     icon: Icons.people_alt_outlined,
                     selected: currentLocation == '/users',
                     onTap: () => context.go('/users'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (canManageBackups) ...[
+                  _NavItem(
+                    title: 'Backup واسترجاع',
+                    icon: Icons.backup_outlined,
+                    selected: currentLocation == '/backups',
+                    onTap: () => context.go('/backups'),
                   ),
                   const SizedBox(height: 12),
                 ],

@@ -47,6 +47,8 @@ class AuthUser {
 
   bool get canManageUsers => isSuperAdmin;
 
+  bool get canManageBackups => isSuperAdmin;
+
   bool get canUseDataExchange => isSuperAdmin || normalizedRoleCode == 'ADMIN';
 
   bool get canExportReports =>

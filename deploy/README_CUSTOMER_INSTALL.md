@@ -35,6 +35,7 @@ D:\reservation_management_system
 - صفحة مخصصة باسم `استيراد/تصدير` داخل القائمة الجانبية.
 - التمويل الشهري معلّق حالياً، والتخصيص المعتمد هو التخصيص السنوي للأبواب.
 - حماية ترخيص اختيارية للـ API تربط التشغيل ببصمة جهاز السيرفر.
+- صفحة Backup واسترجاع للسوبر أدمن مع سكربت نسخ احتياطي تلقائي عبر Windows Task Scheduler.
 
 ملاحظة مهمة:
 
@@ -268,7 +269,47 @@ D:\reservation_management_system\deploy\app\reservation_management_system.exe
 
 بيانات الدخول الافتراضية هي القيم التي تم تمريرها في أمر إنشاء `.env`.
 
-### 6. إلغاء التشغيل التلقائي
+### 6. تفعيل Backup تلقائي يومي
+
+بعد إنشاء ملف `.env` وتشغيل قاعدة البيانات، فعّل النسخ الاحتياطي التلقائي من PowerShell بصلاحية Administrator:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_system\deploy\scripts\install-backup-task.ps1" -InstallRoot "D:\reservation_management_system\deploy" -DailyAt "02:00"
+```
+
+الغرض من الأمر:
+
+- ينشئ Scheduled Task باسم `ReservationManagementDatabaseBackup`.
+- يشغل `pg_dump` يومياً الساعة 02:00.
+- يحفظ النسخ داخل `D:\reservation_management_system\deploy\api\backups` افتراضياً.
+- يحذف النسخ الأقدم من عدد الأيام الموجود في `BACKUP_RETENTION_DAYS`.
+
+تشغيل Backup يدوي:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_system\deploy\scripts\run-database-backup.ps1" -ApiRoot "D:\reservation_management_system\deploy\api"
+```
+
+إذا لم يتعرف Windows على `pg_dump` أو `pg_restore`، افتح:
+
+```text
+D:\reservation_management_system\deploy\api\.env
+```
+
+واكتب المسارات الكاملة:
+
+```text
+PG_DUMP_PATH=C:\Program Files\PostgreSQL\16\bin\pg_dump.exe
+PG_RESTORE_PATH=C:\Program Files\PostgreSQL\16\bin\pg_restore.exe
+```
+
+حذف مهمة النسخ التلقائي:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_system\deploy\scripts\uninstall-backup-task.ps1"
+```
+
+### 7. إلغاء التشغيل التلقائي
 
 إذا احتجت إيقاف خدمة الـ API وحذف مهمة التشغيل التلقائي:
 
@@ -282,7 +323,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_s
 - يحذف المهمة من Windows Task Scheduler.
 - يوقف عملية `reservation_api.exe` إذا كانت تعمل.
 
-### 7. إدارة تشغيل API بدون حذف التشغيل التلقائي
+### 8. إدارة تشغيل API بدون حذف التشغيل التلقائي
 
 هذه الأوامر تستخدم إذا أردت إيقاف أو تشغيل أو إعادة تشغيل الـ API بدون حذف مهمة التشغيل التلقائي.
 

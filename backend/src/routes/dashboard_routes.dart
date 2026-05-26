@@ -25,4 +25,8 @@ void registerDashboardRoutes(
     '/api/dashboard/section-cards',
     protectedRoute(jwtService, controller.sectionCards),
   );
+  router.get(
+    '/api/dashboard/analytics',
+    protectedRoute(jwtService, controller.analytics),
+  );
 }

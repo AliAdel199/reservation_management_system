@@ -6,6 +6,7 @@ import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/alerts/presentation/pages/balance_alerts_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/audit_logs/presentation/pages/audit_logs_page.dart';
+import '../../features/backups/presentation/pages/backups_page.dart';
 import '../../features/budget_sections/presentation/pages/budget_sections_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/data_exchange/presentation/pages/data_exchange_page.dart';
@@ -107,6 +108,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const UsersPage(),
           ),
           GoRoute(
+            path: '/backups',
+            builder: (context, state) => const BackupsPage(),
+          ),
+          GoRoute(
             path: '/audit-logs',
             builder: (context, state) => const AuditLogsPage(),
           ),
@@ -147,6 +152,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           isAuthenticated &&
           location == '/users' &&
           !(user?.canManageUsers ?? false)) {
+        return '/dashboard';
+      }
+
+      if (!isLoading &&
+          isAuthenticated &&
+          location == '/backups' &&
+          !(user?.canManageBackups ?? false)) {
         return '/dashboard';
       }
 

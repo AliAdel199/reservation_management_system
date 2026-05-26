@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:postgres/postgres.dart';
 
 import '../models/dashboard_summary.dart';
@@ -553,5 +555,316 @@ class DashboardRepository {
         postableChildrenCount: parseInt(data['postable_children_count']),
       );
     }).toList();
+  }
+
+  Future<DashboardAnalytics> fetchAnalytics(
+    Session session, {
+    String? fiscalYearId,
+    int limit = 8,
+  }) async {
+    final safeLimit = limit < 1 ? 8 : limit;
+    final result = await session.execute(
+      Sql.named('''
+        WITH RECURSIVE effective_year AS (
+          SELECT COALESCE(
+            NULLIF(@fiscal_year_id, '')::uuid,
+            (
+              SELECT id
+              FROM fiscal_years
+              WHERE is_active = TRUE
+              ORDER BY year DESC
+              LIMIT 1
+            )
+          ) AS id
+        ),
+        allocation_fallback AS (
+          SELECT
+            f.budget_section_id AS section_id,
+            COALESCE(SUM(f.allocated_amount), 0) AS total_allocation
+          FROM fundings f
+          WHERE f.deleted_at IS NULL
+          GROUP BY f.budget_section_id
+        ),
+        sections AS (
+          SELECT
+            bs.id AS section_id,
+            bs.parent_id,
+            bs.program_id,
+            p.name AS program_name,
+            COALESCE(bs.full_code, bs.code) AS section_code,
+            bs.name AS section_name,
+            bs.level,
+            bs.is_postable,
+            CASE
+              WHEN COALESCE(bs.allocated_amount, 0) > 0 THEN bs.allocated_amount
+              ELSE COALESCE(af.total_allocation, 0)
+            END AS direct_allocation
+          FROM budget_sections bs
+          INNER JOIN programs p ON p.id = bs.program_id
+          CROSS JOIN effective_year ey
+          LEFT JOIN allocation_fallback af ON af.section_id = bs.id
+          WHERE bs.deleted_at IS NULL
+            AND bs.is_active = TRUE
+            AND (ey.id IS NULL OR bs.fiscal_year_id = ey.id)
+        ),
+        ledger AS (
+          SELECT
+            COALESCE(ft.section_id, ft.budget_section_id) AS section_id,
+            ft.program_id,
+            EXTRACT(MONTH FROM ft.transaction_date)::int AS month,
+            COALESCE(SUM(CASE
+              WHEN ft.transaction_type::text = 'reservation_hold' THEN ft.amount
+              WHEN ft.transaction_type::text IN ('reservation_release', 'reservation_cancel') THEN -ft.amount
+              ELSE 0
+            END), 0) AS total_reserved,
+            COALESCE(SUM(CASE
+              WHEN ft.transaction_type::text = 'expense_disbursement' THEN ft.amount
+              WHEN ft.transaction_type::text IN ('expense_reversal', 'expense_cancel') THEN -ft.amount
+              ELSE 0
+            END), 0) AS total_spent
+          FROM financial_transactions ft
+          CROSS JOIN effective_year ey
+          LEFT JOIN budget_sections bs
+            ON bs.id = COALESCE(ft.section_id, ft.budget_section_id)
+          WHERE COALESCE(ft.section_id, ft.budget_section_id) IS NOT NULL
+            AND (
+              ey.id IS NULL
+              OR COALESCE(ft.fiscal_year_id, bs.fiscal_year_id) = ey.id
+            )
+          GROUP BY
+            COALESCE(ft.section_id, ft.budget_section_id),
+            ft.program_id,
+            EXTRACT(MONTH FROM ft.transaction_date)::int
+        ),
+        ledger_by_section AS (
+          SELECT
+            section_id,
+            COALESCE(SUM(total_reserved), 0) AS total_reserved,
+            COALESCE(SUM(total_spent), 0) AS total_spent
+          FROM ledger
+          GROUP BY section_id
+        ),
+        program_totals AS (
+          SELECT
+            p.id::text AS id,
+            p.name AS label,
+            COALESCE(SUM(CASE WHEN s.is_postable THEN s.direct_allocation ELSE 0 END), 0)
+              AS total_allocation,
+            COALESCE(SUM(lbs.total_reserved), 0) AS total_reserved,
+            COALESCE(SUM(lbs.total_spent), 0) AS total_spent,
+            COUNT(s.section_id) FILTER (WHERE s.is_postable)::int AS count
+          FROM programs p
+          CROSS JOIN effective_year ey
+          LEFT JOIN sections s ON s.program_id = p.id
+          LEFT JOIN ledger_by_section lbs ON lbs.section_id = s.section_id
+          WHERE p.deleted_at IS NULL
+            AND p.is_active = TRUE
+            AND (ey.id IS NULL OR p.fiscal_year_id = ey.id)
+          GROUP BY p.id, p.name
+        ),
+        section_totals AS (
+          SELECT
+            s.section_id::text AS id,
+            s.section_code || ' - ' || s.section_name AS label,
+            s.program_name AS subtitle,
+            s.direct_allocation AS total_allocation,
+            COALESCE(lbs.total_reserved, 0) AS total_reserved,
+            COALESCE(lbs.total_spent, 0) AS total_spent,
+            0::int AS count
+          FROM sections s
+          LEFT JOIN ledger_by_section lbs ON lbs.section_id = s.section_id
+          WHERE s.is_postable = TRUE
+        ),
+        monthly AS (
+          SELECT
+            month,
+            COALESCE(SUM(total_reserved), 0) AS total_reserved,
+            COALESCE(SUM(total_spent), 0) AS total_spent
+          FROM ledger
+          WHERE month IS NOT NULL
+          GROUP BY month
+        ),
+        no_movement AS (
+          SELECT
+            st.id,
+            st.subtitle AS program_name,
+            split_part(st.label, ' - ', 1) AS section_code,
+            substring(st.label from position(' - ' in st.label) + 3) AS section_name,
+            st.total_allocation
+          FROM section_totals st
+          WHERE st.total_allocation > 0
+            AND st.total_reserved = 0
+            AND st.total_spent = 0
+          ORDER BY st.total_allocation DESC, st.label
+          LIMIT @limit
+        )
+        SELECT
+          COALESCE((
+            SELECT jsonb_agg(row_to_json(item))
+            FROM (
+              SELECT
+                id,
+                label,
+                NULL::text AS subtitle,
+                total_allocation,
+                total_reserved,
+                total_spent,
+                total_allocation - total_reserved AS remaining_balance,
+                count
+              FROM program_totals
+              WHERE total_allocation > 0 OR total_reserved > 0 OR total_spent > 0
+              ORDER BY total_allocation DESC, total_reserved DESC, label
+              LIMIT @limit
+            ) item
+          ), '[]'::jsonb) AS programs,
+          COALESCE((
+            SELECT jsonb_agg(row_to_json(item))
+            FROM (
+              SELECT
+                id,
+                label,
+                subtitle,
+                total_allocation,
+                total_reserved,
+                total_spent,
+                total_allocation - total_reserved AS remaining_balance,
+                count
+              FROM section_totals
+              WHERE total_allocation > 0 OR total_reserved > 0 OR total_spent > 0
+              ORDER BY total_allocation DESC, total_reserved DESC, label
+              LIMIT @limit
+            ) item
+          ), '[]'::jsonb) AS sections,
+          COALESCE((
+            SELECT jsonb_agg(row_to_json(item) ORDER BY item.month)
+            FROM (
+              SELECT
+                month,
+                CASE month
+                  WHEN 1 THEN 'كانون الثاني'
+                  WHEN 2 THEN 'شباط'
+                  WHEN 3 THEN 'آذار'
+                  WHEN 4 THEN 'نيسان'
+                  WHEN 5 THEN 'أيار'
+                  WHEN 6 THEN 'حزيران'
+                  WHEN 7 THEN 'تموز'
+                  WHEN 8 THEN 'آب'
+                  WHEN 9 THEN 'أيلول'
+                  WHEN 10 THEN 'تشرين الأول'
+                  WHEN 11 THEN 'تشرين الثاني'
+                  WHEN 12 THEN 'كانون الأول'
+                  ELSE month::text
+                END AS label,
+                total_reserved,
+                total_spent
+              FROM monthly
+            ) item
+          ), '[]'::jsonb) AS monthly,
+          COALESCE((
+            SELECT jsonb_agg(row_to_json(item))
+            FROM (
+              SELECT
+                id,
+                label,
+                subtitle,
+                total_allocation,
+                total_reserved,
+                total_spent,
+                total_allocation - total_reserved AS remaining_balance,
+                count
+              FROM section_totals
+              WHERE total_spent > 0
+              ORDER BY total_spent DESC, label
+              LIMIT @limit
+            ) item
+          ), '[]'::jsonb) AS top_spent_sections,
+          COALESCE((
+            SELECT jsonb_agg(row_to_json(item))
+            FROM (
+              SELECT
+                id AS section_id,
+                program_name,
+                section_code,
+                section_name,
+                total_allocation
+              FROM no_movement
+            ) item
+          ), '[]'::jsonb) AS no_movement_sections
+      '''),
+      parameters: {'fiscal_year_id': fiscalYearId ?? '', 'limit': safeLimit},
+    );
+
+    if (result.isEmpty) {
+      return const DashboardAnalytics(
+        programs: [],
+        sections: [],
+        monthly: [],
+        topSpentSections: [],
+        noMovementSections: [],
+      );
+    }
+
+    final data = result.first.toColumnMap();
+
+    double parseDouble(dynamic value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '0') ?? 0;
+    int parseInt(dynamic value) =>
+        value is int ? value : int.tryParse(value?.toString() ?? '0') ?? 0;
+    List<dynamic> parseList(dynamic value) {
+      if (value is List) return value;
+      if (value is String && value.trim().isNotEmpty) {
+        final decoded = jsonDecode(value);
+        if (decoded is List) return decoded;
+      }
+      return const <dynamic>[];
+    }
+
+    DashboardAnalyticsItem itemFromJson(dynamic raw) {
+      final item = raw is Map ? raw : const <String, dynamic>{};
+      return DashboardAnalyticsItem(
+        id: item['id']?.toString() ?? '',
+        label: item['label']?.toString() ?? '',
+        subtitle: item['subtitle']?.toString(),
+        totalAllocation: parseDouble(item['total_allocation']),
+        totalReserved: parseDouble(item['total_reserved']),
+        totalSpent: parseDouble(item['total_spent']),
+        remainingBalance: parseDouble(item['remaining_balance']),
+        count: parseInt(item['count']),
+      );
+    }
+
+    DashboardMonthlyAnalyticsItem monthlyFromJson(dynamic raw) {
+      final item = raw is Map ? raw : const <String, dynamic>{};
+      return DashboardMonthlyAnalyticsItem(
+        month: parseInt(item['month']),
+        label: item['label']?.toString() ?? '',
+        totalReserved: parseDouble(item['total_reserved']),
+        totalSpent: parseDouble(item['total_spent']),
+      );
+    }
+
+    DashboardNoMovementSection noMovementFromJson(dynamic raw) {
+      final item = raw is Map ? raw : const <String, dynamic>{};
+      return DashboardNoMovementSection(
+        sectionId: item['section_id']?.toString() ?? '',
+        programName: item['program_name']?.toString() ?? '',
+        sectionCode: item['section_code']?.toString() ?? '',
+        sectionName: item['section_name']?.toString() ?? '',
+        totalAllocation: parseDouble(item['total_allocation']),
+      );
+    }
+
+    return DashboardAnalytics(
+      programs: parseList(data['programs']).map(itemFromJson).toList(),
+      sections: parseList(data['sections']).map(itemFromJson).toList(),
+      monthly: parseList(data['monthly']).map(monthlyFromJson).toList(),
+      topSpentSections: parseList(
+        data['top_spent_sections'],
+      ).map(itemFromJson).toList(),
+      noMovementSections: parseList(
+        data['no_movement_sections'],
+      ).map(noMovementFromJson).toList(),
+    );
   }
 }

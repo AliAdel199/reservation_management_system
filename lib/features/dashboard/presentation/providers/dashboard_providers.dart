@@ -56,3 +56,15 @@ final dashboardSectionCardsProvider = FutureProvider.autoDispose
           .watch(dashboardRepositoryProvider)
           .fetchSectionCards(level: level);
     });
+
+final dashboardAnalyticsProvider =
+    FutureProvider.autoDispose<DashboardAnalytics>((ref) async {
+      final timer = Stream<void>.periodic(const Duration(seconds: 10)).listen((
+        _,
+      ) {
+        ref.invalidateSelf();
+      });
+      ref.onDispose(timer.cancel);
+
+      return ref.watch(dashboardRepositoryProvider).fetchAnalytics();
+    });

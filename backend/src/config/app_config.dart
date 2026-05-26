@@ -15,6 +15,10 @@ class AppConfig {
     required this.licenseEnforcementEnabled,
     required this.licenseFilePath,
     required this.licensePublicKeyPath,
+    required this.backupDirectory,
+    required this.pgDumpPath,
+    required this.pgRestorePath,
+    required this.backupRetentionDays,
   });
 
   final String appName;
@@ -30,6 +34,10 @@ class AppConfig {
   final bool licenseEnforcementEnabled;
   final String licenseFilePath;
   final String licensePublicKeyPath;
+  final String backupDirectory;
+  final String pgDumpPath;
+  final String pgRestorePath;
+  final int backupRetentionDays;
 
   factory AppConfig.fromEnvironment() {
     final env = DotEnv(includePlatformEnvironment: true, quiet: true)..load();
@@ -53,6 +61,11 @@ class AppConfig {
           (env['LICENSE_ENFORCEMENT'] ?? 'false').toLowerCase() == 'true',
       licenseFilePath: env['LICENSE_FILE'] ?? 'license.json',
       licensePublicKeyPath: env['LICENSE_PUBLIC_KEY'] ?? 'license_public.pem',
+      backupDirectory: env['BACKUP_DIR'] ?? 'backups',
+      pgDumpPath: env['PG_DUMP_PATH'] ?? 'pg_dump',
+      pgRestorePath: env['PG_RESTORE_PATH'] ?? 'pg_restore',
+      backupRetentionDays:
+          int.tryParse(env['BACKUP_RETENTION_DAYS'] ?? '30') ?? 30,
     );
   }
 }
