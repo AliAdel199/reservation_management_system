@@ -57,6 +57,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     final institutionSettings = ref.watch(institutionControllerProvider);
     final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
     final canExportReports = currentUser?.canExportReports ?? false;
+    final canPrintReports = currentUser?.canPrintReports ?? false;
     final currency = NumberFormat.currency(
       locale: 'ar_IQ',
       symbol: 'د.ع',
@@ -103,50 +104,53 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 data: (items) {
                   final displayItems = _displayItems(items);
                   final visibleColumns = _orderedVisibleColumns();
-                  if (!canExportReports) {
+                  if (!canPrintReports && !canExportReports) {
                     return const SizedBox.shrink();
                   }
                   return Wrap(
                     spacing: 8,
                     children: [
-                      OutlinedButton.icon(
-                        onPressed: displayItems.isEmpty
-                            ? null
-                            : () => _exportHtml(
-                                displayItems,
-                                visibleColumns: visibleColumns,
-                                institutionSettings:
-                                    institutionSettings.asData?.value,
-                                openAfterExport: true,
-                              ),
-                        icon: const Icon(Icons.print_outlined),
-                        label: const Text('طباعة'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: displayItems.isEmpty
-                            ? null
-                            : () => _exportHtml(
-                                displayItems,
-                                visibleColumns: visibleColumns,
-                                institutionSettings:
-                                    institutionSettings.asData?.value,
-                                openAfterExport: false,
-                              ),
-                        icon: const Icon(Icons.picture_as_pdf_outlined),
-                        label: const Text('تقرير HTML'),
-                      ),
-                      FilledButton.icon(
-                        onPressed: displayItems.isEmpty
-                            ? null
-                            : () => _exportXlsx(
-                                displayItems,
-                                visibleColumns: visibleColumns,
-                                institutionSettings:
-                                    institutionSettings.asData?.value,
-                              ),
-                        icon: const Icon(Icons.table_chart_outlined),
-                        label: const Text('Excel'),
-                      ),
+                      if (canPrintReports)
+                        OutlinedButton.icon(
+                          onPressed: displayItems.isEmpty
+                              ? null
+                              : () => _exportHtml(
+                                  displayItems,
+                                  visibleColumns: visibleColumns,
+                                  institutionSettings:
+                                      institutionSettings.asData?.value,
+                                  openAfterExport: true,
+                                ),
+                          icon: const Icon(Icons.print_outlined),
+                          label: const Text('طباعة'),
+                        ),
+                      if (canExportReports) ...[
+                        OutlinedButton.icon(
+                          onPressed: displayItems.isEmpty
+                              ? null
+                              : () => _exportHtml(
+                                  displayItems,
+                                  visibleColumns: visibleColumns,
+                                  institutionSettings:
+                                      institutionSettings.asData?.value,
+                                  openAfterExport: false,
+                                ),
+                          icon: const Icon(Icons.picture_as_pdf_outlined),
+                          label: const Text('تقرير HTML'),
+                        ),
+                        FilledButton.icon(
+                          onPressed: displayItems.isEmpty
+                              ? null
+                              : () => _exportXlsx(
+                                  displayItems,
+                                  visibleColumns: visibleColumns,
+                                  institutionSettings:
+                                      institutionSettings.asData?.value,
+                                ),
+                          icon: const Icon(Icons.table_chart_outlined),
+                          label: const Text('Excel'),
+                        ),
+                      ],
                     ],
                   );
                 },

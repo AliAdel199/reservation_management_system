@@ -8,6 +8,7 @@ class AppUser {
     required this.roleCode,
     required this.roleName,
     required this.isActive,
+    this.permissions = const [],
     this.passwordHash,
   });
 
@@ -19,9 +20,13 @@ class AppUser {
   final String roleCode;
   final String roleName;
   final bool isActive;
+  final List<String> permissions;
   final String? passwordHash;
 
-  factory AppUser.fromRow(Map<String, dynamic> row) {
+  factory AppUser.fromRow(
+    Map<String, dynamic> row, {
+    List<String> permissions = const [],
+  }) {
     return AppUser(
       id: row['id'].toString(),
       username: row['username'].toString(),
@@ -31,6 +36,7 @@ class AppUser {
       roleCode: row['role_code'].toString(),
       roleName: row['role_name'].toString(),
       isActive: row['is_active'] as bool,
+      permissions: permissions,
       passwordHash: row['password_hash']?.toString(),
     );
   }
@@ -45,6 +51,7 @@ class AppUser {
       'role_code': roleCode,
       'role_name': roleName,
       'is_active': isActive,
+      'permissions': permissions,
     };
   }
 }

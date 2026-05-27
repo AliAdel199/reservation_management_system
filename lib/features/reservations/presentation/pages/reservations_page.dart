@@ -15,6 +15,7 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../budget_sections/models/budget_section_item.dart';
 import '../../../budget_sections/presentation/controllers/budget_sections_controller.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../document_attachments/presentation/document_attachments_dialog.dart';
 import '../../../programs/models/program_item.dart';
 import '../../../programs/presentation/controllers/programs_controller.dart';
 import '../../../reports/presentation/controllers/reports_controller.dart';
@@ -67,8 +68,12 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
     final programsLookup = ref.watch(programLookupProvider);
     final budgetSectionsLookup = ref.watch(allBudgetSectionsLookupProvider);
     final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
-    final canModify = currentUser?.canModifyRecords ?? false;
-    final canDelete = currentUser?.canDeleteRecords ?? false;
+    final canAdd = currentUser?.canAddReservations ?? false;
+    final canEdit = currentUser?.canEditReservations ?? false;
+    final canApprove = currentUser?.canApproveReservations ?? false;
+    final canCancel = currentUser?.canCancelReservations ?? false;
+    final canSpend = currentUser?.canSpendReservations ?? false;
+    final canDelete = currentUser?.canDeleteReservations ?? false;
     final currency = NumberFormat.currency(
       locale: 'ar_IQ',
       symbol: 'د.ع',
@@ -151,7 +156,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                 ),
                 FilledButton.icon(
                   onPressed:
-                      canModify &&
+                      canAdd &&
                           programsLookup.hasValue &&
                           budgetSectionsLookup.hasValue
                       ? () => _openCreateDialog(
@@ -359,7 +364,7 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                               formatter: currency,
                               onDetails: (item) =>
                                   _showReservationDetails(item, currency),
-                              onEdit: canModify
+                              onEdit: canEdit
                                   ? (item) async {
                                       if (!programsLookup.hasValue ||
                                           !budgetSectionsLookup.hasValue) {
@@ -372,13 +377,17 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                                       );
                                     }
                                   : null,
-                              onSubmit: canModify ? _submitForReview : null,
-                              onApprove: canModify ? _approveReservation : null,
-                              onCancel: canModify ? _cancelReservation : null,
-                              onSpend: canModify
+                              onSubmit: canEdit ? _submitForReview : null,
+                              onApprove: canApprove
+                                  ? _approveReservation
+                                  : null,
+                              onCancel: canCancel ? _cancelReservation : null,
+                              onSpend: canSpend
                                   ? _openExpenseForReservation
                                   : null,
                               onDelete: canDelete ? _deleteReservation : null,
+                              onAttachments: (item) =>
+                                  _openAttachments(item, canEdit || canAdd),
                             ),
                             columnWidthMode: ColumnWidthMode.none,
                             rowHeight: 62,
@@ -455,6 +464,11 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
                                 columnName: 'remaining',
                                 width: 120,
                                 label: const _GridHeader('المتبقي'),
+                              ),
+                              GridColumn(
+                                columnName: 'documents',
+                                width: 130,
+                                label: const _GridHeader('المستندات'),
                               ),
                               GridColumn(
                                 columnName: 'actions',
@@ -656,6 +670,18 @@ class _ReservationsPageState extends ConsumerState<ReservationsPage> {
   void _openExpenseForReservation(ReservationItem item) {
     // تعليق عربي: نمرر رقم الحجز لصفحة الصرف حتى يظهر محدداً وجاهزاً للمستخدم.
     context.go('/expenses?reservation_id=${item.id}&open_create=1');
+  }
+
+  Future<void> _openAttachments(ReservationItem item, bool canModify) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => DocumentAttachmentsDialog(
+        entityType: 'reservation',
+        entityId: item.id,
+        title: 'مرفقات الحجز ${item.reservationNumber}',
+        canModify: canModify,
+      ),
+    );
   }
 
   void _applyFilters() {
@@ -1280,6 +1306,7 @@ class _ReservationsDataSource extends DataGridSource {
     this.onCancel,
     this.onSpend,
     this.onDelete,
+    required this.onAttachments,
   });
 
   final List<ReservationItem> items;
@@ -1291,6 +1318,7 @@ class _ReservationsDataSource extends DataGridSource {
   final Future<void> Function(ReservationItem item)? onCancel;
   final void Function(ReservationItem item)? onSpend;
   final Future<void> Function(ReservationItem item)? onDelete;
+  final Future<void> Function(ReservationItem item) onAttachments;
 
   @override
   List<DataGridRow> get rows => items
@@ -1322,6 +1350,7 @@ class _ReservationsDataSource extends DataGridSource {
             DataGridCell<ReservationItem>(columnName: 'status', value: item),
             DataGridCell<ReservationItem>(columnName: 'spent', value: item),
             DataGridCell<ReservationItem>(columnName: 'remaining', value: item),
+            DataGridCell<ReservationItem>(columnName: 'documents', value: item),
             DataGridCell<ReservationItem>(columnName: 'actions', value: item),
           ],
         ),
@@ -1354,6 +1383,19 @@ class _ReservationsDataSource extends DataGridSource {
         _GridCell(formatter.format(item.remainingAmount)),
         Padding(
           padding: const EdgeInsets.all(8),
+          child: Center(
+            child: OutlinedButton.icon(
+              onPressed: () => onAttachments(item),
+              icon: const Icon(Icons.attach_file, size: 18),
+              label: const Text('مرفقات'),
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8),
           child: Align(
             alignment: Alignment.centerRight,
             child: _ReservationActionsMenu(
@@ -1365,6 +1407,7 @@ class _ReservationsDataSource extends DataGridSource {
               onCancel: onCancel,
               onSpend: onSpend,
               onDelete: onDelete,
+              onAttachments: onAttachments,
             ),
           ),
         ),
@@ -1392,6 +1435,7 @@ class _ReservationActionsMenu extends StatelessWidget {
     this.onCancel,
     this.onSpend,
     this.onDelete,
+    required this.onAttachments,
   });
 
   final ReservationItem item;
@@ -1402,6 +1446,7 @@ class _ReservationActionsMenu extends StatelessWidget {
   final Future<void> Function(ReservationItem item)? onCancel;
   final void Function(ReservationItem item)? onSpend;
   final Future<void> Function(ReservationItem item)? onDelete;
+  final Future<void> Function(ReservationItem item) onAttachments;
 
   @override
   Widget build(BuildContext context) {
@@ -1411,6 +1456,10 @@ class _ReservationActionsMenu extends StatelessWidget {
       const PopupMenuItem(
         value: _ReservationAction.details,
         child: _ActionLabel(icon: Icons.visibility_outlined, label: 'تفاصيل'),
+      ),
+      const PopupMenuItem(
+        value: _ReservationAction.attachments,
+        child: _ActionLabel(icon: Icons.attach_file, label: 'مرفقات'),
       ),
       if (onEdit != null &&
           (item.workflowStatus == 'draft' ||
@@ -1464,6 +1513,8 @@ class _ReservationActionsMenu extends StatelessWidget {
             onCancel?.call(item);
           case _ReservationAction.delete:
             onDelete?.call(item);
+          case _ReservationAction.attachments:
+            onAttachments(item);
         }
       },
       itemBuilder: (_) => actions,
@@ -1495,6 +1546,7 @@ enum _ReservationAction {
   spend,
   cancel,
   delete,
+  attachments,
 }
 
 class _ActionLabel extends StatelessWidget {

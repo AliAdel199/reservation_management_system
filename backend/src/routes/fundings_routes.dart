@@ -9,13 +9,20 @@ void registerFundingsRoutes(
   FundingsController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/fundings', protectedRoute(jwtService, controller.list));
+  router.get(
+    '/api/fundings',
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.fundingsView,
+    ),
+  );
   router.post(
     '/api/fundings',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.fundingsAdd,
     ),
   );
   router.put(
@@ -23,7 +30,7 @@ void registerFundingsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.fundingsEdit,
     )(request),
   );
 }

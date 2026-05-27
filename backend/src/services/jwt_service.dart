@@ -16,6 +16,7 @@ class JwtService {
       'full_name': user.fullName,
       'role_code': user.roleCode,
       'role_name': user.roleName,
+      'permissions': user.permissions,
     }, issuer: _config.appName);
 
     return jwt.sign(

@@ -11,14 +11,18 @@ void registerMonthlyFundingsRoutes(
 ) {
   router.get(
     '/api/monthly-fundings',
-    protectedRoute(jwtService, controller.list),
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.fundingsView,
+    ),
   );
   router.post(
     '/api/monthly-fundings',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.fundingsAdd,
     ),
   );
   router.put(
@@ -26,7 +30,7 @@ void registerMonthlyFundingsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.fundingsEdit,
     )(request),
   );
   router.delete(
@@ -34,7 +38,7 @@ void registerMonthlyFundingsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.delete(request, request.params['id']!),
-      permission: PermissionCodes.deleteRecords,
+      permission: PermissionCodes.fundingsDelete,
     )(request),
   );
 }

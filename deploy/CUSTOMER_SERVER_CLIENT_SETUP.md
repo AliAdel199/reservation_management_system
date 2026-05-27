@@ -147,6 +147,7 @@ D:\reservation_management_system\deploy\api\.env
 PG_DUMP_PATH=C:\Program Files\PostgreSQL\16\bin\pg_dump.exe
 PG_RESTORE_PATH=C:\Program Files\PostgreSQL\16\bin\pg_restore.exe
 BACKUP_DIR=backups
+ATTACHMENTS_DIR=attachments
 BACKUP_RETENTION_DAYS=30
 ```
 

@@ -16,6 +16,7 @@ class AppSidebar extends StatelessWidget {
     final canManageBackups = user?.canManageBackups ?? false;
     final canViewAuditLogs = user?.canViewAuditLogs ?? false;
     final canUseDataExchange = user?.canUseDataExchange ?? false;
+    final canViewApiSettings = user?.canViewApiSettings ?? false;
 
     return Container(
       width: 260,
@@ -121,13 +122,15 @@ class AppSidebar extends StatelessWidget {
                   onTap: () => context.go('/institution'),
                 ),
                 const SizedBox(height: 12),
-                _NavItem(
-                  title: 'إعداد الاتصال',
-                  icon: Icons.settings_ethernet_outlined,
-                  selected: currentLocation == '/api-settings',
-                  onTap: () => context.go('/api-settings'),
-                ),
-                const SizedBox(height: 12),
+                if (canViewApiSettings) ...[
+                  _NavItem(
+                    title: 'إعداد الاتصال',
+                    icon: Icons.settings_ethernet_outlined,
+                    selected: currentLocation == '/api-settings',
+                    onTap: () => context.go('/api-settings'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 if (canManageUsers) ...[
                   _NavItem(
                     title: 'المستخدمون',

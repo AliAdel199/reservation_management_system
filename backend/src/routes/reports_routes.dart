@@ -14,7 +14,7 @@ void registerReportsRoutes(
     protectedRoute(
       jwtService,
       controller.sectionSummary,
-      permission: PermissionCodes.viewReports,
+      permission: PermissionCodes.reportsViewPage,
     ),
   );
 }

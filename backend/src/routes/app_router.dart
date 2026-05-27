@@ -7,6 +7,7 @@ import '../controllers/backups_controller.dart';
 import '../controllers/budget_sections_controller.dart';
 import '../controllers/budget_types_controller.dart';
 import '../controllers/dashboard_controller.dart';
+import '../controllers/document_attachments_controller.dart';
 import '../controllers/expenses_controller.dart';
 import '../controllers/fiscal_years_controller.dart';
 import '../controllers/fundings_controller.dart';
@@ -25,6 +26,7 @@ import 'backups_routes.dart';
 import 'budget_sections_routes.dart';
 import 'budget_types_routes.dart';
 import 'dashboard_routes.dart';
+import 'document_attachments_routes.dart';
 import 'expenses_routes.dart';
 import 'fiscal_years_routes.dart';
 import 'fundings_routes.dart';
@@ -45,6 +47,7 @@ Handler buildAppRouter({
   required AuditLogsController auditLogsController,
   required BackupsController backupsController,
   required DashboardController dashboardController,
+  required DocumentAttachmentsController documentAttachmentsController,
   required FiscalYearsController fiscalYearsController,
   required BudgetTypesController budgetTypesController,
   required MonthlyFundingsController monthlyFundingsController,
@@ -66,6 +69,11 @@ Handler buildAppRouter({
   registerAuditLogsRoutes(router, auditLogsController, jwtService);
   registerBackupsRoutes(router, backupsController, jwtService);
   registerDashboardRoutes(router, dashboardController, jwtService);
+  registerDocumentAttachmentsRoutes(
+    router,
+    documentAttachmentsController,
+    jwtService,
+  );
   registerFiscalYearsRoutes(router, fiscalYearsController, jwtService);
   registerBudgetTypesRoutes(router, budgetTypesController, jwtService);
   // تعليق عربي: تم تعليق API التمويل الشهري مؤقتاً حتى تثبت فكرته المحاسبية.

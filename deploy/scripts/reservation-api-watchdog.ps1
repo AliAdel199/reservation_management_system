@@ -12,7 +12,16 @@ $envPath = Join-Path $apiRoot ".env"
 $logRoot = Join-Path $deployRoot "logs"
 $stdoutLog = Join-Path $logRoot "reservation_api.out.log"
 $stderrLog = Join-Path $logRoot "reservation_api.err.log"
+$watchdogLog = Join-Path $logRoot "reservation_api.watchdog.log"
 New-Item -ItemType Directory -Force $logRoot | Out-Null
+
+function Write-WatchdogLog([string]$message) {
+  try {
+    Add-Content -Path $watchdogLog -Value "$(Get-Date -Format s) $message" -ErrorAction Stop
+  } catch {
+    Write-Host "$(Get-Date -Format s) $message"
+  }
+}
 
 function Get-EnvValue([string]$key, [string]$fallback) {
   if (-not (Test-Path $envPath)) { return $fallback }
@@ -23,7 +32,7 @@ function Get-EnvValue([string]$key, [string]$fallback) {
 
 function Start-Api {
   if (-not (Test-Path $apiExe)) {
-    Add-Content $stderrLog "$(Get-Date -Format s) API executable not found: $apiExe"
+    Write-WatchdogLog "API executable not found: $apiExe"
     Start-Sleep -Seconds 30
     return
   }
@@ -36,7 +45,7 @@ function Start-Api {
     -RedirectStandardError $stderrLog `
     -PassThru
 
-  Add-Content $stdoutLog "$(Get-Date -Format s) API started. PID=$($process.Id)"
+  Write-WatchdogLog "API started. PID=$($process.Id)"
 }
 
 while ($true) {
@@ -56,7 +65,7 @@ while ($true) {
       throw "Health check returned status $($response.StatusCode)."
     }
   } catch {
-    Add-Content $stderrLog "$(Get-Date -Format s) Health check failed: $($_.Exception.Message). Restarting API..."
+    Write-WatchdogLog "Health check failed: $($_.Exception.Message). Restarting API..."
     Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 3
     Start-Api

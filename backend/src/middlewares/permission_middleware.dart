@@ -7,6 +7,70 @@ import 'auth_middleware.dart';
 import 'request_context_keys.dart';
 
 abstract final class PermissionCodes {
+  static const dashboardView = 'dashboard.view';
+  static const alertsView = 'alerts.view';
+
+  static const programsView = 'programs.view';
+  static const programsAdd = 'programs.add';
+  static const programsEdit = 'programs.edit';
+  static const programsDelete = 'programs.delete';
+
+  static const fiscalYearsView = 'fiscal_years.view';
+  static const fiscalYearsAdd = 'fiscal_years.add';
+  static const fiscalYearsEdit = 'fiscal_years.edit';
+  static const fiscalYearsDelete = 'fiscal_years.delete';
+
+  static const budgetTypesView = 'budget_types.view';
+  static const budgetTypesAdd = 'budget_types.add';
+  static const budgetTypesEdit = 'budget_types.edit';
+  static const budgetTypesDelete = 'budget_types.delete';
+
+  static const budgetSectionsView = 'budget_sections.view';
+  static const budgetSectionsAdd = 'budget_sections.add';
+  static const budgetSectionsEdit = 'budget_sections.edit';
+  static const budgetSectionsDelete = 'budget_sections.delete';
+
+  static const fundingsView = 'fundings.view';
+  static const fundingsAdd = 'fundings.add';
+  static const fundingsEdit = 'fundings.edit';
+  static const fundingsDelete = 'fundings.delete';
+
+  static const reservationsView = 'reservations.view';
+  static const reservationsAdd = 'reservations.add';
+  static const reservationsEdit = 'reservations.edit';
+  static const reservationsDelete = 'reservations.delete';
+  static const reservationsApprove = 'reservations.approve';
+  static const reservationsCancel = 'reservations.cancel';
+  static const reservationsSpend = 'reservations.spend';
+
+  static const expensesView = 'expenses.view';
+  static const expensesAdd = 'expenses.add';
+  static const expensesCancel = 'expenses.cancel';
+
+  static const reportsViewPage = 'reports.view';
+  static const reportsPrint = 'reports.print';
+  static const reportsExport = 'reports.export';
+
+  static const institutionView = 'institution.view';
+  static const institutionEdit = 'institution.edit';
+
+  static const usersView = 'users.view';
+  static const usersAdd = 'users.add';
+  static const usersEdit = 'users.edit';
+
+  static const auditLogsView = 'audit_logs.view';
+
+  static const dataExchangeView = 'data_exchange.view';
+  static const dataExchangeImport = 'data_exchange.import';
+  static const dataExchangeExport = 'data_exchange.export';
+
+  static const backupsView = 'backups.view';
+  static const backupsCreate = 'backups.create';
+  static const backupsRestore = 'backups.restore';
+
+  static const apiSettingsView = 'api_settings.view';
+  static const apiSettingsEdit = 'api_settings.edit';
+
   static const viewRecords = 'view_records';
   static const modifyRecords = 'modify_records';
   static const deleteRecords = 'delete_records';
@@ -42,7 +106,7 @@ Middleware permissionMiddleware(String permission) {
         );
       }
 
-      if (!_hasPermission(requestUser.roleCode, permission)) {
+      if (!_hasPermission(requestUser, permission)) {
         throw AppException(
           message: _permissionMessage(permission),
           statusCode: 403,
@@ -55,21 +119,22 @@ Middleware permissionMiddleware(String permission) {
   };
 }
 
-bool _hasPermission(String rawRoleCode, String permission) {
-  final roleCode = rawRoleCode.trim().toUpperCase();
+bool _hasPermission(RequestUser requestUser, String permission) {
+  if (requestUser.hasPermission(permission)) {
+    return true;
+  }
+
+  final roleCode = requestUser.roleCode.trim().toUpperCase();
   if (roleCode == 'SUPER_ADMIN' || roleCode == 'SUPERADMIN') {
     return true;
   }
 
-  if (permission == PermissionCodes.deleteRecords ||
-      permission == PermissionCodes.manageUsers ||
-      permission == PermissionCodes.manageBackups) {
+  if (_superAdminOnlyPermissions.contains(permission)) {
     // تعليق عربي: الحذف وإدارة صلاحيات المستخدمين محصوران بالسوبر أدمن فقط.
     return false;
   }
 
-  if (permission == PermissionCodes.viewRecords ||
-      permission == PermissionCodes.viewReports) {
+  if (_viewPermissions.contains(permission)) {
     return {
       'ADMIN',
       'FINANCE_MANAGER',
@@ -81,7 +146,7 @@ bool _hasPermission(String rawRoleCode, String permission) {
     }.contains(roleCode);
   }
 
-  if (permission == PermissionCodes.viewAuditLogs) {
+  if (_auditPermissions.contains(permission)) {
     // تعليق عربي: سجل الإجراءات يحتوي تفاصيل حساسة، لذلك لا يظهر للمعاينة أو مدخل البيانات.
     return {
       'ADMIN',
@@ -92,9 +157,7 @@ bool _hasPermission(String rawRoleCode, String permission) {
     }.contains(roleCode);
   }
 
-  if (permission == PermissionCodes.modifyRecords ||
-      permission == PermissionCodes.manageSettings ||
-      permission == PermissionCodes.exportReports) {
+  if (_modifyPermissions.contains(permission)) {
     return {
       'ADMIN',
       'FINANCE_MANAGER',
@@ -108,15 +171,102 @@ bool _hasPermission(String rawRoleCode, String permission) {
   return false;
 }
 
+const _superAdminOnlyPermissions = {
+  PermissionCodes.deleteRecords,
+  PermissionCodes.manageUsers,
+  PermissionCodes.manageBackups,
+  PermissionCodes.programsDelete,
+  PermissionCodes.fiscalYearsDelete,
+  PermissionCodes.budgetTypesDelete,
+  PermissionCodes.budgetSectionsDelete,
+  PermissionCodes.fundingsDelete,
+  PermissionCodes.reservationsDelete,
+  PermissionCodes.usersView,
+  PermissionCodes.usersAdd,
+  PermissionCodes.usersEdit,
+  PermissionCodes.backupsView,
+  PermissionCodes.backupsCreate,
+  PermissionCodes.backupsRestore,
+};
+
+const _viewPermissions = {
+  PermissionCodes.viewRecords,
+  PermissionCodes.viewReports,
+  PermissionCodes.dashboardView,
+  PermissionCodes.alertsView,
+  PermissionCodes.programsView,
+  PermissionCodes.fiscalYearsView,
+  PermissionCodes.budgetTypesView,
+  PermissionCodes.budgetSectionsView,
+  PermissionCodes.fundingsView,
+  PermissionCodes.reservationsView,
+  PermissionCodes.expensesView,
+  PermissionCodes.reportsViewPage,
+  PermissionCodes.institutionView,
+  PermissionCodes.apiSettingsView,
+};
+
+const _auditPermissions = {
+  PermissionCodes.viewAuditLogs,
+  PermissionCodes.auditLogsView,
+};
+
+const _modifyPermissions = {
+  PermissionCodes.modifyRecords,
+  PermissionCodes.manageSettings,
+  PermissionCodes.exportReports,
+  PermissionCodes.programsAdd,
+  PermissionCodes.programsEdit,
+  PermissionCodes.fiscalYearsAdd,
+  PermissionCodes.fiscalYearsEdit,
+  PermissionCodes.budgetTypesAdd,
+  PermissionCodes.budgetTypesEdit,
+  PermissionCodes.budgetSectionsAdd,
+  PermissionCodes.budgetSectionsEdit,
+  PermissionCodes.fundingsAdd,
+  PermissionCodes.fundingsEdit,
+  PermissionCodes.reservationsAdd,
+  PermissionCodes.reservationsEdit,
+  PermissionCodes.reservationsApprove,
+  PermissionCodes.reservationsCancel,
+  PermissionCodes.reservationsSpend,
+  PermissionCodes.expensesAdd,
+  PermissionCodes.expensesCancel,
+  PermissionCodes.reportsPrint,
+  PermissionCodes.reportsExport,
+  PermissionCodes.institutionEdit,
+  PermissionCodes.dataExchangeView,
+  PermissionCodes.dataExchangeImport,
+  PermissionCodes.dataExchangeExport,
+  PermissionCodes.apiSettingsEdit,
+};
+
 String _permissionMessage(String permission) {
   return switch (permission) {
     PermissionCodes.deleteRecords =>
       'Delete operations are allowed only for the super admin account.',
+    PermissionCodes.programsDelete ||
+    PermissionCodes.fiscalYearsDelete ||
+    PermissionCodes.budgetTypesDelete ||
+    PermissionCodes.budgetSectionsDelete ||
+    PermissionCodes.fundingsDelete ||
+    PermissionCodes.reservationsDelete =>
+      'Delete operations are allowed only for the super admin account.',
     PermissionCodes.manageUsers =>
+      'User permissions can be managed only by the super admin account.',
+    PermissionCodes.usersView ||
+    PermissionCodes.usersAdd ||
+    PermissionCodes.usersEdit =>
       'User permissions can be managed only by the super admin account.',
     PermissionCodes.manageBackups =>
       'Database backup and restore is allowed only for the super admin account.',
+    PermissionCodes.backupsView ||
+    PermissionCodes.backupsCreate ||
+    PermissionCodes.backupsRestore =>
+      'Database backup and restore is allowed only for the super admin account.',
     PermissionCodes.viewAuditLogs =>
+      'Audit logs are not available for this account.',
+    PermissionCodes.auditLogsView =>
       'Audit logs are not available for this account.',
     PermissionCodes.modifyRecords =>
       'This account has view-only access and cannot add or edit records.',

@@ -35,7 +35,13 @@ class AuthRepository {
       return null;
     }
 
-    return AppUser.fromRow(result.first.toColumnMap());
+    final row = result.first.toColumnMap();
+    final permissions = await findPermissionCodes(
+      session,
+      row['role_id'].toString(),
+    );
+
+    return AppUser.fromRow(row, permissions: permissions);
   }
 
   Future<AppUser?> findById(Session session, String userId) async {
@@ -63,7 +69,31 @@ class AuthRepository {
       return null;
     }
 
-    return AppUser.fromRow(result.first.toColumnMap());
+    final row = result.first.toColumnMap();
+    final permissions = await findPermissionCodes(
+      session,
+      row['role_id'].toString(),
+    );
+
+    return AppUser.fromRow(row, permissions: permissions);
+  }
+
+  Future<List<String>> findPermissionCodes(
+    Session session,
+    String roleId,
+  ) async {
+    final result = await session.execute(
+      Sql.named('''
+        SELECT p.code
+        FROM role_permissions rp
+        INNER JOIN permissions p ON p.id = rp.permission_id
+        WHERE rp.role_id = @role_id::uuid
+        ORDER BY p.code ASC
+      '''),
+      parameters: {'role_id': roleId},
+    );
+
+    return result.map((row) => row[0].toString()).toList();
   }
 
   Future<String> findRoleIdByCode(Session session, String roleCode) async {

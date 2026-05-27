@@ -11,22 +11,42 @@ void registerDashboardRoutes(
 ) {
   router.get(
     '/api/dashboard/summary',
-    protectedRoute(jwtService, controller.summary),
+    protectedRoute(
+      jwtService,
+      controller.summary,
+      permission: PermissionCodes.dashboardView,
+    ),
   );
   router.get(
     '/api/dashboard/alerts',
-    protectedRoute(jwtService, controller.alerts),
+    protectedRoute(
+      jwtService,
+      controller.alerts,
+      permission: PermissionCodes.alertsView,
+    ),
   );
   router.get(
     '/api/dashboard/level-three-sections',
-    protectedRoute(jwtService, controller.sectionCards),
+    protectedRoute(
+      jwtService,
+      controller.sectionCards,
+      permission: PermissionCodes.dashboardView,
+    ),
   );
   router.get(
     '/api/dashboard/section-cards',
-    protectedRoute(jwtService, controller.sectionCards),
+    protectedRoute(
+      jwtService,
+      controller.sectionCards,
+      permission: PermissionCodes.dashboardView,
+    ),
   );
   router.get(
     '/api/dashboard/analytics',
-    protectedRoute(jwtService, controller.analytics),
+    protectedRoute(
+      jwtService,
+      controller.analytics,
+      permission: PermissionCodes.dashboardView,
+    ),
   );
 }

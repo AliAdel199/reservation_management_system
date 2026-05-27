@@ -13,6 +13,7 @@ import 'controllers/backups_controller.dart';
 import 'controllers/budget_sections_controller.dart';
 import 'controllers/budget_types_controller.dart';
 import 'controllers/dashboard_controller.dart';
+import 'controllers/document_attachments_controller.dart';
 import 'controllers/expenses_controller.dart';
 import 'controllers/fiscal_years_controller.dart';
 import 'controllers/fundings_controller.dart';
@@ -31,6 +32,7 @@ import 'repositories/audit_logs_repository.dart';
 import 'repositories/budget_sections_repository.dart';
 import 'repositories/budget_types_repository.dart';
 import 'repositories/dashboard_repository.dart';
+import 'repositories/document_attachments_repository.dart';
 import 'repositories/expenses_repository.dart';
 import 'repositories/fiscal_years_repository.dart';
 import 'repositories/fundings_repository.dart';
@@ -43,6 +45,7 @@ import 'repositories/users_repository.dart';
 import 'routes/app_router.dart';
 import 'services/audit_service.dart';
 import 'services/database_backup_service.dart';
+import 'services/document_storage_service.dart';
 import 'services/jwt_service.dart';
 import 'services/password_service.dart';
 import 'middlewares/database_keep_alive_middleware.dart';
@@ -63,6 +66,7 @@ Future<void> startServer() async {
   final usersRepository = UsersRepository();
   final auditLogsRepository = AuditLogsRepository();
   final dashboardRepository = DashboardRepository();
+  final documentAttachmentsRepository = DocumentAttachmentsRepository();
   final fiscalYearsRepository = FiscalYearsRepository();
   final budgetTypesRepository = BudgetTypesRepository();
   final monthlyFundingsRepository = MonthlyFundingsRepository();
@@ -77,6 +81,7 @@ Future<void> startServer() async {
   final auditService = AuditService();
   final licenseService = LicenseService(config);
   final backupService = DatabaseBackupService(config);
+  final documentStorageService = DocumentStorageService(config);
 
   final seeder = DatabaseSeeder(
     config: config,
@@ -140,6 +145,12 @@ Future<void> startServer() async {
           dashboardController: DashboardController(
             database: database,
             dashboardRepository: dashboardRepository,
+          ),
+          documentAttachmentsController: DocumentAttachmentsController(
+            database: database,
+            repository: documentAttachmentsRepository,
+            storageService: documentStorageService,
+            auditService: auditService,
           ),
           fiscalYearsController: FiscalYearsController(
             database: database,

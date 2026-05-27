@@ -9,13 +9,20 @@ void registerInstitutionRoutes(
   InstitutionController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/institution', protectedRoute(jwtService, controller.get));
+  router.get(
+    '/api/institution',
+    protectedRoute(
+      jwtService,
+      controller.get,
+      permission: PermissionCodes.institutionView,
+    ),
+  );
   router.put(
     '/api/institution',
     protectedRoute(
       jwtService,
       controller.update,
-      permission: PermissionCodes.manageSettings,
+      permission: PermissionCodes.institutionEdit,
     ),
   );
 }

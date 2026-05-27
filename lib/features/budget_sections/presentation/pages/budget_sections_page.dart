@@ -40,8 +40,9 @@ class _BudgetSectionsPageState extends ConsumerState<BudgetSectionsPage> {
     final fiscalYearsState = ref.watch(fiscalYearsLookupProvider);
     final sectionsLookupState = ref.watch(allBudgetSectionsLookupProvider);
     final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
-    final canModify = currentUser?.canModifyRecords ?? false;
-    final canDelete = currentUser?.canDeleteRecords ?? false;
+    final canAdd = currentUser?.canAddBudgetSections ?? false;
+    final canEdit = currentUser?.canEditBudgetSections ?? false;
+    final canDelete = currentUser?.canDeleteBudgetSections ?? false;
     final currency = NumberFormat.currency(
       locale: 'ar_IQ',
       symbol: 'د.ع',
@@ -83,7 +84,7 @@ class _BudgetSectionsPageState extends ConsumerState<BudgetSectionsPage> {
                 ),
                 FilledButton.icon(
                   onPressed:
-                      canModify &&
+                      canAdd &&
                           programLookupState.hasValue &&
                           fiscalYearsState.hasValue
                       ? () => _openCreateDialog(
@@ -173,7 +174,7 @@ class _BudgetSectionsPageState extends ConsumerState<BudgetSectionsPage> {
               ],
             ),
             const SizedBox(height: 16),
-            Container(
+            SizedBox(
               height: 700,
               child: Card(
                 child: AsyncValueView(
@@ -241,7 +242,7 @@ class _BudgetSectionsPageState extends ConsumerState<BudgetSectionsPage> {
                               formatter: currency,
                               collapsedIds: _collapsedSectionIds,
                               onToggle: _toggleTreeNode,
-                              onEdit: canModify
+                              onEdit: canEdit
                                   ? (item) async {
                                       if (!programLookupState.hasValue ||
                                           !fiscalYearsState.hasValue) {

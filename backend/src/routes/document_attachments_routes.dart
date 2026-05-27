@@ -1,44 +1,44 @@
 import 'package:shelf_router/shelf_router.dart';
 
-import '../controllers/budget_sections_controller.dart';
+import '../controllers/document_attachments_controller.dart';
 import '../middlewares/permission_middleware.dart';
 import '../services/jwt_service.dart';
 
-void registerBudgetSectionsRoutes(
+void registerDocumentAttachmentsRoutes(
   Router router,
-  BudgetSectionsController controller,
+  DocumentAttachmentsController controller,
   JwtService jwtService,
 ) {
   router.get(
-    '/api/budget-sections',
+    '/api/document-attachments',
     protectedRoute(
       jwtService,
       controller.list,
-      permission: PermissionCodes.budgetSectionsView,
+      permission: PermissionCodes.viewRecords,
     ),
   );
   router.post(
-    '/api/budget-sections',
+    '/api/document-attachments',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.budgetSectionsAdd,
+      permission: PermissionCodes.modifyRecords,
     ),
   );
-  router.put(
-    '/api/budget-sections/<id>',
+  router.get(
+    '/api/document-attachments/<id>/download',
     (request) => protectedRoute(
       jwtService,
-      (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.budgetSectionsEdit,
+      (request) => controller.download(request, request.params['id']!),
+      permission: PermissionCodes.viewRecords,
     )(request),
   );
   router.delete(
-    '/api/budget-sections/<id>',
+    '/api/document-attachments/<id>',
     (request) => protectedRoute(
       jwtService,
       (request) => controller.delete(request, request.params['id']!),
-      permission: PermissionCodes.budgetSectionsDelete,
+      permission: PermissionCodes.modifyRecords,
     )(request),
   );
 }

@@ -14,7 +14,7 @@ void registerBackupsRoutes(
     protectedRoute(
       jwtService,
       controller.list,
-      permission: PermissionCodes.manageBackups,
+      permission: PermissionCodes.backupsView,
     ),
   );
 
@@ -23,7 +23,7 @@ void registerBackupsRoutes(
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.manageBackups,
+      permission: PermissionCodes.backupsCreate,
     ),
   );
 
@@ -32,7 +32,7 @@ void registerBackupsRoutes(
     protectedRoute(
       jwtService,
       controller.restore,
-      permission: PermissionCodes.manageBackups,
+      permission: PermissionCodes.backupsRestore,
     ),
   );
 }

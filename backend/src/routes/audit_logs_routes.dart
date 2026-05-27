@@ -14,7 +14,7 @@ void registerAuditLogsRoutes(
     protectedRoute(
       jwtService,
       controller.list,
-      permission: PermissionCodes.viewAuditLogs,
+      permission: PermissionCodes.auditLogsView,
     ),
   );
 }

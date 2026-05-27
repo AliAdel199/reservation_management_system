@@ -33,8 +33,9 @@ class _ProgramsPageState extends ConsumerState<ProgramsPage> {
     final programsState = ref.watch(programsControllerProvider);
     final fiscalYearsState = ref.watch(fiscalYearsLookupProvider);
     final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
-    final canModify = currentUser?.canModifyRecords ?? false;
-    final canDelete = currentUser?.canDeleteRecords ?? false;
+    final canAdd = currentUser?.canAddPrograms ?? false;
+    final canEdit = currentUser?.canEditPrograms ?? false;
+    final canDelete = currentUser?.canDeletePrograms ?? false;
     final selectedFiscalYearId = programsState.asData?.value.fiscalYearId;
     final currency = NumberFormat.currency(
       locale: 'ar_IQ',
@@ -75,7 +76,7 @@ class _ProgramsPageState extends ConsumerState<ProgramsPage> {
                 ),
               ),
               FilledButton.icon(
-                onPressed: canModify && fiscalYearsState.hasValue
+                onPressed: canAdd && fiscalYearsState.hasValue
                     ? () => _openCreateDialog(fiscalYearsState.requireValue)
                     : null,
                 icon: const Icon(Icons.add),
@@ -152,7 +153,7 @@ class _ProgramsPageState extends ConsumerState<ProgramsPage> {
                         source: _ProgramsDataSource(
                           programs: state.result.items,
                           formatter: currency,
-                          onEdit: canModify
+                          onEdit: canEdit
                               ? (item) async {
                                   if (!fiscalYearsState.hasValue) return;
                                   await _openEditDialog(

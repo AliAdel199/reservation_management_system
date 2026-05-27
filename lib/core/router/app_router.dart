@@ -176,6 +176,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/dashboard';
       }
 
+      if (!isLoading &&
+          isAuthenticated &&
+          location == '/api-settings' &&
+          !(user?.canViewApiSettings ?? false)) {
+        return '/dashboard';
+      }
+
       return null;
     },
   );

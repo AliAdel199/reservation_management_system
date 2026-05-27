@@ -9,13 +9,20 @@ void registerProgramsRoutes(
   ProgramsController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/programs', protectedRoute(jwtService, controller.list));
+  router.get(
+    '/api/programs',
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.programsView,
+    ),
+  );
   router.post(
     '/api/programs',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.programsAdd,
     ),
   );
   router.put(
@@ -23,7 +30,7 @@ void registerProgramsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.programsEdit,
     )(request),
   );
   router.delete(
@@ -31,7 +38,7 @@ void registerProgramsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.delete(request, request.params['id']!),
-      permission: PermissionCodes.deleteRecords,
+      permission: PermissionCodes.programsDelete,
     )(request),
   );
 }

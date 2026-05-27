@@ -11,6 +11,7 @@ import '../../../../core/providers/live_refresh_provider.dart';
 import '../../../../shared/widgets/async_value_view.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../document_attachments/presentation/document_attachments_dialog.dart';
 import '../../../reports/presentation/controllers/reports_controller.dart';
 import '../../../reservations/models/reservation_item.dart';
 import '../../../reservations/presentation/controllers/reservations_controller.dart';
@@ -63,7 +64,8 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
     final expensesState = ref.watch(expensesControllerProvider);
     final reservations = ref.watch(spendableReservationsProvider);
     final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
-    final canModify = currentUser?.canModifyRecords ?? false;
+    final canAdd = currentUser?.canAddExpenses ?? false;
+    final canCancel = currentUser?.canCancelExpenses ?? false;
     final currency = NumberFormat.currency(
       locale: 'ar_IQ',
       symbol: 'د.ع',
@@ -121,7 +123,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                 ),
               ),
               FilledButton.icon(
-                onPressed: canModify && reservations.hasValue
+                onPressed: canAdd && reservations.hasValue
                     ? () => _openCreateDialog(reservations.requireValue)
                     : null,
                 icon: const Icon(Icons.add),
@@ -264,7 +266,9 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                           source: _ExpensesDataSource(
                             items: state.result.items,
                             formatter: currency,
-                            onCancel: canModify ? _cancelExpense : null,
+                            onCancel: canCancel ? _cancelExpense : null,
+                            onAttachments: (item) =>
+                                _openAttachments(item, canAdd),
                           ),
                           columnWidthMode: ColumnWidthMode.fill,
                           columns: [
@@ -291,6 +295,10 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                             GridColumn(
                               columnName: 'status',
                               label: const _GridHeader('الحالة'),
+                            ),
+                            GridColumn(
+                              columnName: 'documents',
+                              label: const _GridHeader('المستندات'),
                             ),
                             GridColumn(
                               columnName: 'actions',
@@ -360,6 +368,18 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
     ref.invalidate(dashboardSummaryByFiscalYearProvider);
     ref.invalidate(sectionSummaryProvider);
     _showMessage('تم إلغاء الصرف وعكس الحركة في السجل المالي.');
+  }
+
+  Future<void> _openAttachments(ExpenseItem item, bool canModify) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => DocumentAttachmentsDialog(
+        entityType: 'expense',
+        entityId: item.id,
+        title: 'مرفقات الصرف ${item.expenseNumber}',
+        canModify: canModify,
+      ),
+    );
   }
 
   void _applyFilters() {
@@ -905,11 +925,13 @@ class _ExpensesDataSource extends DataGridSource {
   _ExpensesDataSource({
     required this.items,
     required this.formatter,
+    required this.onAttachments,
     this.onCancel,
   });
 
   final List<ExpenseItem> items;
   final NumberFormat formatter;
+  final Future<void> Function(ExpenseItem item) onAttachments;
   final Future<void> Function(ExpenseItem item)? onCancel;
 
   @override
@@ -923,6 +945,7 @@ class _ExpensesDataSource extends DataGridSource {
             DataGridCell<ExpenseItem>(columnName: 'amount', value: item),
             DataGridCell<ExpenseItem>(columnName: 'date', value: item),
             DataGridCell<ExpenseItem>(columnName: 'status', value: item),
+            DataGridCell<ExpenseItem>(columnName: 'documents', value: item),
             DataGridCell<ExpenseItem>(columnName: 'actions', value: item),
           ],
         ),
@@ -942,18 +965,66 @@ class _ExpensesDataSource extends DataGridSource {
         _GridCell(item.expenseStatus == 'cancelled' ? 'ملغي' : 'مصروف'),
         Padding(
           padding: const EdgeInsets.all(8),
+          child: Center(
+            child: OutlinedButton.icon(
+              onPressed: () => onAttachments(item),
+              icon: const Icon(Icons.attach_file, size: 18),
+              label: const Text('مرفقات'),
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8),
           child: Align(
             alignment: Alignment.centerRight,
-            child: item.expenseStatus == 'cancelled' || onCancel == null
-                ? const Text('-')
-                : IconButton(
-                    onPressed: () => onCancel!(item),
-                    icon: const Icon(Icons.undo_outlined),
-                    tooltip: 'إلغاء الصرف',
+            child: PopupMenuButton<_ExpenseAction>(
+              tooltip: 'إجراءات الصرف',
+              onSelected: (value) {
+                switch (value) {
+                  case _ExpenseAction.attachments:
+                    onAttachments(item);
+                  case _ExpenseAction.cancel:
+                    onCancel?.call(item);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: _ExpenseAction.attachments,
+                  child: _ActionLabel(icon: Icons.attach_file, label: 'مرفقات'),
+                ),
+                if (item.expenseStatus != 'cancelled' && onCancel != null)
+                  const PopupMenuItem(
+                    value: _ExpenseAction.cancel,
+                    child: _ActionLabel(
+                      icon: Icons.undo_outlined,
+                      label: 'إلغاء الصرف',
+                    ),
                   ),
+              ],
+              child: const Icon(Icons.more_horiz),
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+enum _ExpenseAction { attachments, cancel }
+
+class _ActionLabel extends StatelessWidget {
+  const _ActionLabel({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)],
     );
   }
 }

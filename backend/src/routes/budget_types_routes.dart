@@ -9,13 +9,20 @@ void registerBudgetTypesRoutes(
   BudgetTypesController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/budget-types', protectedRoute(jwtService, controller.list));
+  router.get(
+    '/api/budget-types',
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.budgetTypesView,
+    ),
+  );
   router.post(
     '/api/budget-types',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.manageSettings,
+      permission: PermissionCodes.budgetTypesAdd,
     ),
   );
   router.put(
@@ -23,7 +30,7 @@ void registerBudgetTypesRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.manageSettings,
+      permission: PermissionCodes.budgetTypesEdit,
     )(request),
   );
   router.delete(
@@ -31,7 +38,7 @@ void registerBudgetTypesRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.delete(request, request.params['id']!),
-      permission: PermissionCodes.deleteRecords,
+      permission: PermissionCodes.budgetTypesDelete,
     )(request),
   );
 }

@@ -94,6 +94,14 @@ class UsersRepository {
     final result = await session.execute('''
       SELECT id, code, name, description
       FROM roles
+      WHERE code IN (
+        'SUPER_ADMIN',
+        'ADMIN',
+        'FINANCE_MANAGER',
+        'REVIEWER',
+        'DATA_ENTRY',
+        'VIEWER'
+      )
       ORDER BY name ASC
     ''');
     return result.map((row) => UserRole.fromRow(row.toColumnMap())).toList();

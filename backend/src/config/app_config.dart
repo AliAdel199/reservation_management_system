@@ -16,6 +16,7 @@ class AppConfig {
     required this.licenseFilePath,
     required this.licensePublicKeyPath,
     required this.backupDirectory,
+    required this.attachmentDirectory,
     required this.pgDumpPath,
     required this.pgRestorePath,
     required this.backupRetentionDays,
@@ -35,6 +36,7 @@ class AppConfig {
   final String licenseFilePath;
   final String licensePublicKeyPath;
   final String backupDirectory;
+  final String attachmentDirectory;
   final String pgDumpPath;
   final String pgRestorePath;
   final int backupRetentionDays;
@@ -62,6 +64,7 @@ class AppConfig {
       licenseFilePath: env['LICENSE_FILE'] ?? 'license.json',
       licensePublicKeyPath: env['LICENSE_PUBLIC_KEY'] ?? 'license_public.pem',
       backupDirectory: env['BACKUP_DIR'] ?? 'backups',
+      attachmentDirectory: env['ATTACHMENTS_DIR'] ?? 'attachments',
       pgDumpPath: env['PG_DUMP_PATH'] ?? 'pg_dump',
       pgRestorePath: env['PG_RESTORE_PATH'] ?? 'pg_restore',
       backupRetentionDays:

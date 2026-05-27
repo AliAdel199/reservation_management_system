@@ -9,13 +9,20 @@ void registerFiscalYearsRoutes(
   FiscalYearsController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/fiscal-years', protectedRoute(jwtService, controller.list));
+  router.get(
+    '/api/fiscal-years',
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.fiscalYearsView,
+    ),
+  );
   router.post(
     '/api/fiscal-years',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.manageSettings,
+      permission: PermissionCodes.fiscalYearsAdd,
     ),
   );
   router.put(
@@ -23,7 +30,7 @@ void registerFiscalYearsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.manageSettings,
+      permission: PermissionCodes.fiscalYearsEdit,
     )(request),
   );
   router.delete(
@@ -31,7 +38,7 @@ void registerFiscalYearsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.delete(request, request.params['id']!),
-      permission: PermissionCodes.deleteRecords,
+      permission: PermissionCodes.fiscalYearsDelete,
     )(request),
   );
   router.patch(
@@ -39,7 +46,7 @@ void registerFiscalYearsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.activate(request, request.params['id']!),
-      permission: PermissionCodes.manageSettings,
+      permission: PermissionCodes.fiscalYearsEdit,
     )(request),
   );
 }

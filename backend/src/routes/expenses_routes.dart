@@ -9,13 +9,20 @@ void registerExpensesRoutes(
   ExpensesController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/expenses', protectedRoute(jwtService, controller.list));
+  router.get(
+    '/api/expenses',
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.expensesView,
+    ),
+  );
   router.post(
     '/api/expenses',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.expensesAdd,
     ),
   );
   router.patch(
@@ -23,7 +30,7 @@ void registerExpensesRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.cancel(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.expensesCancel,
     )(request),
   );
 }

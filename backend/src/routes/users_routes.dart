@@ -14,7 +14,7 @@ void registerUsersRoutes(
     protectedRoute(
       jwtService,
       controller.list,
-      permission: PermissionCodes.manageUsers,
+      permission: PermissionCodes.usersView,
     ),
   );
   router.get(
@@ -22,7 +22,7 @@ void registerUsersRoutes(
     protectedRoute(
       jwtService,
       controller.roles,
-      permission: PermissionCodes.manageUsers,
+      permission: PermissionCodes.usersView,
     ),
   );
   router.post(
@@ -30,7 +30,7 @@ void registerUsersRoutes(
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.manageUsers,
+      permission: PermissionCodes.usersAdd,
     ),
   );
   router.put(
@@ -38,7 +38,7 @@ void registerUsersRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.manageUsers,
+      permission: PermissionCodes.usersEdit,
     )(request),
   );
   router.patch(
@@ -46,7 +46,7 @@ void registerUsersRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.setStatus(request, request.params['id']!),
-      permission: PermissionCodes.manageUsers,
+      permission: PermissionCodes.usersEdit,
     )(request),
   );
   router.patch(
@@ -54,7 +54,7 @@ void registerUsersRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.updatePassword(request, request.params['id']!),
-      permission: PermissionCodes.manageUsers,
+      permission: PermissionCodes.usersEdit,
     )(request),
   );
 }

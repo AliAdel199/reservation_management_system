@@ -9,13 +9,20 @@ void registerReservationsRoutes(
   ReservationsController controller,
   JwtService jwtService,
 ) {
-  router.get('/api/reservations', protectedRoute(jwtService, controller.list));
+  router.get(
+    '/api/reservations',
+    protectedRoute(
+      jwtService,
+      controller.list,
+      permission: PermissionCodes.reservationsView,
+    ),
+  );
   router.post(
     '/api/reservations',
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsAdd,
     ),
   );
   router.put(
@@ -23,7 +30,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.update(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsEdit,
     )(request),
   );
   router.delete(
@@ -31,7 +38,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.delete(request, request.params['id']!),
-      permission: PermissionCodes.deleteRecords,
+      permission: PermissionCodes.reservationsDelete,
     )(request),
   );
   router.post(
@@ -39,7 +46,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.submitForReview(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsEdit,
     )(request),
   );
   router.post(
@@ -47,7 +54,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.approve(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsApprove,
     )(request),
   );
   router.post(
@@ -55,7 +62,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.cancel(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsCancel,
     )(request),
   );
   router.patch(
@@ -63,7 +70,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.submitForReview(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsEdit,
     )(request),
   );
   router.patch(
@@ -71,7 +78,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.approve(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsApprove,
     )(request),
   );
   router.patch(
@@ -79,7 +86,7 @@ void registerReservationsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.cancel(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
+      permission: PermissionCodes.reservationsCancel,
     )(request),
   );
 }

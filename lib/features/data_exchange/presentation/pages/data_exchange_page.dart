@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/errors/app_exception.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../budget_sections/models/budget_section_item.dart';
 import '../../../budget_sections/presentation/controllers/budget_sections_controller.dart';
 import '../../../fiscal_years/models/fiscal_year_item.dart';
@@ -59,6 +60,10 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
+    final canImport = currentUser?.canImportData ?? false;
+    final canExport = currentUser?.canExportData ?? false;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: ConstrainedBox(
@@ -87,7 +92,9 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                       'ينشئ ملف Excel بشيت للبرامج وشيت لشجرة الأبواب مع الباب الأب والكود الكامل ونوع الباب.',
                   icon: Icons.apps_outlined,
                   actionLabel: 'تصدير القالب',
-                  onPressed: _isWorking ? null : _exportProgramsTemplate,
+                  onPressed: _isWorking || !canExport
+                      ? null
+                      : _exportProgramsTemplate,
                 ),
                 _ActionCard(
                   title: 'استيراد البرامج والأبواب',
@@ -95,7 +102,7 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                       'يقرأ شيت البرامج أولاً ثم يبني شجرة الأبواب من الأعلى إلى الأسفل حسب الباب الأب والكود الكامل.',
                   icon: Icons.upload_file_outlined,
                   actionLabel: 'اختيار ملف Excel',
-                  onPressed: _isWorking ? null : _importPrograms,
+                  onPressed: _isWorking || !canImport ? null : _importPrograms,
                 ),
                 _ActionCard(
                   title: 'تصدير البرامج',
@@ -103,7 +110,9 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                       'يصدّر البرامج الحالية مع شيت تفصيلي للأبواب الهرمية والتخصيص السنوي لكل باب نهائي.',
                   icon: Icons.download_outlined,
                   actionLabel: 'تصدير Excel',
-                  onPressed: _isWorking ? null : _exportProgramsData,
+                  onPressed: _isWorking || !canExport
+                      ? null
+                      : _exportProgramsData,
                 ),
                 _ActionCard(
                   title: 'قالب الحجوزات',
@@ -111,7 +120,9 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                       'ينشئ ملف Excel للحجوزات يحتوي البرنامج والباب والمبلغ وحالة الحجز المبسطة.',
                   icon: Icons.assignment_outlined,
                   actionLabel: 'تصدير القالب',
-                  onPressed: _isWorking ? null : _exportReservationsTemplate,
+                  onPressed: _isWorking || !canExport
+                      ? null
+                      : _exportReservationsTemplate,
                 ),
                 _ActionCard(
                   title: 'استيراد الحجوزات',
@@ -119,7 +130,9 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                       'يضيف الحجوزات من Excel كحجوزات محجوزة أو معتمدة مع تطبيق قواعد الرصيد.',
                   icon: Icons.playlist_add_check_outlined,
                   actionLabel: 'اختيار ملف Excel',
-                  onPressed: _isWorking ? null : _importReservations,
+                  onPressed: _isWorking || !canImport
+                      ? null
+                      : _importReservations,
                 ),
                 _ActionCard(
                   title: 'تصدير الحجوزات',
@@ -127,7 +140,9 @@ class _DataExchangePageState extends ConsumerState<DataExchangePage> {
                       'يصدّر الحجوزات الحالية مع الحالة والمصروف والمتبقي إلى ملف Excel للمتابعة والأرشفة.',
                   icon: Icons.download_for_offline_outlined,
                   actionLabel: 'تصدير Excel',
-                  onPressed: _isWorking ? null : _exportReservationsData,
+                  onPressed: _isWorking || !canExport
+                      ? null
+                      : _exportReservationsData,
                 ),
               ],
             ),
