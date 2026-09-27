@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
@@ -14,10 +12,14 @@ import '../../../fiscal_years/models/fiscal_year_item.dart';
 import '../../../fiscal_years/presentation/controllers/fiscal_years_controller.dart';
 import '../../../programs/models/program_item.dart';
 import '../../../programs/presentation/controllers/programs_controller.dart';
-import '../../data/fundings_repository.dart';
 import '../../models/funding_item.dart';
-import '../../models/funding_movement_item.dart';
 import '../controllers/fundings_controller.dart';
+import '../../../../shared/widgets/grid_text_cells.dart';
+import '../../../../shared/widgets/pagination_bar.dart';
+import '../widgets/funding_form_dialog.dart';
+import '../widgets/transfer_allocation_dialog.dart';
+import '../widgets/funding_movements_dialog.dart';
+import '../widgets/fundings_grid.dart';
 
 class FundingsPage extends ConsumerStatefulWidget {
   const FundingsPage({super.key});
@@ -208,7 +210,7 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
                   children: [
                     Expanded(
                       child: SfDataGrid(
-                        source: _FundingsDataSource(
+                        source: FundingsDataSource(
                           items: state.result.items,
                           formatter: NumberFormat.currency(
                             locale: 'ar_IQ',
@@ -236,48 +238,48 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
                         columns: [
                           GridColumn(
                             columnName: 'reference',
-                            label: _GridHeader('مرجع التخصيص'),
+                            label: GridHeaderText('مرجع التخصيص'),
                           ),
                           GridColumn(
                             columnName: 'program',
-                            label: _GridHeader('البرنامج'),
+                            label: GridHeaderText('البرنامج'),
                           ),
                           GridColumn(
                             columnName: 'section',
-                            label: _GridHeader('الباب'),
+                            label: GridHeaderText('الباب'),
                           ),
                           GridColumn(
                             columnName: 'year',
-                            label: _GridHeader('السنة'),
+                            label: GridHeaderText('السنة'),
                           ),
                           GridColumn(
                             columnName: 'initial_amount',
-                            label: _GridHeader('التخصيص البدائي'),
+                            label: GridHeaderText('التخصيص البدائي'),
                           ),
                           GridColumn(
                             columnName: 'current_amount',
-                            label: _GridHeader('التخصيص الحالي'),
+                            label: GridHeaderText('التخصيص الحالي'),
                           ),
                           GridColumn(
                             columnName: 'reserved_amount',
-                            label: _GridHeader('المحجوز'),
+                            label: GridHeaderText('المحجوز'),
                           ),
                           GridColumn(
                             columnName: 'spent_amount',
-                            label: _GridHeader('المصروف'),
+                            label: GridHeaderText('المصروف'),
                           ),
                           GridColumn(
                             columnName: 'available_amount',
-                            label: _GridHeader('المتبقي المتاح'),
+                            label: GridHeaderText('المتبقي المتاح'),
                           ),
                           GridColumn(
                             columnName: 'actions',
-                            label: _GridHeader('إجراءات'),
+                            label: GridHeaderText('إجراءات'),
                           ),
                         ],
                       ),
                     ),
-                    _PaginationBar(
+                    PaginationBar(
                       page: state.result.pagination.page,
                       totalPages: state.result.pagination.totalPages,
                       total: state.result.pagination.total,
@@ -311,7 +313,7 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
   }) async {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => _FundingDialog(
+      builder: (context) => FundingFormDialog(
         programs: programs,
         sections: sections,
         activeFiscalYear: activeFiscalYear,
@@ -338,7 +340,7 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
   ) async {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => _FundingDialog(
+      builder: (context) => FundingFormDialog(
         programs: programs,
         sections: sections,
         initialValue: item,
@@ -371,7 +373,7 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
   Future<void> _openTransferDialog(List<BudgetSectionItem> sections) async {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => _TransferAllocationDialog(sections: sections),
+      builder: (context) => TransferAllocationDialog(sections: sections),
     );
 
     if (payload == null || !mounted) return;
@@ -395,7 +397,7 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
   ) async {
     await showDialog<void>(
       context: context,
-      builder: (context) => _FundingMovementsDialog(
+      builder: (context) => FundingMovementsDialog(
         repository: ref.read(fundingsRepositoryProvider),
         programs: programs,
         sections: sections,
@@ -436,661 +438,5 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
-  }
-}
-
-class _TransferAllocationDialog extends StatefulWidget {
-  const _TransferAllocationDialog({required this.sections});
-
-  final List<BudgetSectionItem> sections;
-
-  @override
-  State<_TransferAllocationDialog> createState() =>
-      _TransferAllocationDialogState();
-}
-
-class _TransferAllocationDialogState extends State<_TransferAllocationDialog> {
-  final _formKey = GlobalKey<FormBuilderState>();
-
-  @override
-  Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(
-      locale: 'ar_IQ',
-      symbol: 'د.ع',
-      decimalDigits: 0,
-    );
-    final sections = widget.sections
-        .where((section) => section.isPostable && section.isActive)
-        .toList();
-
-    return AlertDialog(
-      title: const Text('مناقلة بين التخصيصات'),
-      content: SizedBox(
-        width: 620,
-        child: FormBuilder(
-          key: _formKey,
-          initialValue: {
-            'reference': 'TR-${DateTime.now().millisecondsSinceEpoch}',
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FormBuilderDropdown<String>(
-                name: 'from_budget_section_id',
-                decoration: const InputDecoration(labelText: 'من باب'),
-                items: sections
-                    .map(
-                      (section) => DropdownMenuItem(
-                        value: section.id,
-                        child: Text(
-                          '${section.fullCode} - ${section.name} (${currency.format(section.allocatedAmount)})',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderDropdown<String>(
-                name: 'to_budget_section_id',
-                decoration: const InputDecoration(labelText: 'إلى باب'),
-                items: sections
-                    .map(
-                      (section) => DropdownMenuItem(
-                        value: section.id,
-                        child: Text(
-                          '${section.fullCode} - ${section.name}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'amount',
-                decoration: const InputDecoration(labelText: 'مبلغ المناقلة'),
-                validator: FormBuilderValidators.compose([
-                  FormBuilderValidators.required(errorText: 'الحقل مطلوب'),
-                  FormBuilderValidators.numeric(errorText: 'أدخل رقماً صحيحاً'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'reference',
-                decoration: const InputDecoration(labelText: 'مرجع المناقلة'),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'notes',
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'ملاحظات'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('إلغاء'),
-        ),
-        FilledButton(onPressed: _submit, child: const Text('تنفيذ المناقلة')),
-      ],
-    );
-  }
-
-  void _submit() {
-    final formState = _formKey.currentState;
-    if (formState == null || !formState.saveAndValidate()) return;
-    final values = formState.value;
-    if (values['from_budget_section_id'] == values['to_budget_section_id']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا يمكن المناقلة لنفس الباب.')),
-      );
-      return;
-    }
-
-    Navigator.of(context).pop({
-      'from_budget_section_id': values['from_budget_section_id']?.toString(),
-      'to_budget_section_id': values['to_budget_section_id']?.toString(),
-      'amount': double.parse(values['amount'].toString()),
-      'reference': values['reference']?.toString().trim(),
-      'notes': values['notes']?.toString().trim(),
-    });
-  }
-}
-
-class _FundingMovementsDialog extends StatefulWidget {
-  const _FundingMovementsDialog({
-    required this.repository,
-    required this.programs,
-    required this.sections,
-  });
-
-  final FundingsRepository repository;
-  final List<ProgramItem> programs;
-  final List<BudgetSectionItem> sections;
-
-  @override
-  State<_FundingMovementsDialog> createState() =>
-      _FundingMovementsDialogState();
-}
-
-class _FundingMovementsDialogState extends State<_FundingMovementsDialog> {
-  String? _programId;
-  String? _sectionId;
-  DateTime? _fromDate;
-  DateTime? _toDate;
-  late Future<List<FundingMovementItem>> _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _load();
-  }
-
-  Future<List<FundingMovementItem>> _load() {
-    return widget.repository.fetchMovements(
-      programId: _programId,
-      budgetSectionId: _sectionId,
-      fromDate: _fromDate == null
-          ? null
-          : DateFormat('yyyy-MM-dd').format(_fromDate!),
-      toDate: _toDate == null
-          ? null
-          : DateFormat('yyyy-MM-dd').format(_toDate!),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(
-      locale: 'ar_IQ',
-      symbol: 'د.ع',
-      decimalDigits: 0,
-    );
-    final filteredSections = widget.sections
-        .where(
-          (section) =>
-              _programId == null ? true : section.programId == _programId,
-        )
-        .toList();
-
-    return AlertDialog(
-      title: const Text('تقرير حركة التخصيصات'),
-      content: SizedBox(
-        width: 980,
-        height: 620,
-        child: Column(
-          children: [
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                SizedBox(
-                  width: 220,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _programId,
-                    decoration: const InputDecoration(labelText: 'البرنامج'),
-                    items: [
-                      const DropdownMenuItem(value: '', child: Text('الكل')),
-                      ...widget.programs.map(
-                        (program) => DropdownMenuItem(
-                          value: program.id,
-                          child: Text(program.name),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() {
-                      _programId = value == '' ? null : value;
-                      _sectionId = null;
-                      _future = _load();
-                    }),
-                  ),
-                ),
-                SizedBox(
-                  width: 260,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _sectionId,
-                    decoration: const InputDecoration(labelText: 'الباب'),
-                    items: [
-                      const DropdownMenuItem(value: '', child: Text('الكل')),
-                      ...filteredSections.map(
-                        (section) => DropdownMenuItem(
-                          value: section.id,
-                          child: Text('${section.fullCode} - ${section.name}'),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() {
-                      _sectionId = value == '' ? null : value;
-                      _future = _load();
-                    }),
-                  ),
-                ),
-                _DateFilterButton(
-                  label: _fromDate == null
-                      ? 'من تاريخ'
-                      : DateFormat('yyyy-MM-dd').format(_fromDate!),
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                      initialDate: _fromDate ?? DateTime.now(),
-                    );
-                    if (picked == null) return;
-                    setState(() {
-                      _fromDate = picked;
-                      _future = _load();
-                    });
-                  },
-                ),
-                _DateFilterButton(
-                  label: _toDate == null
-                      ? 'إلى تاريخ'
-                      : DateFormat('yyyy-MM-dd').format(_toDate!),
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                      initialDate: _toDate ?? DateTime.now(),
-                    );
-                    if (picked == null) return;
-                    setState(() {
-                      _toDate = picked;
-                      _future = _load();
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: FutureBuilder<List<FundingMovementItem>>(
-                future: _future,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text(snapshot.error.toString()));
-                  }
-                  final items = snapshot.data ?? const [];
-                  if (items.isEmpty) {
-                    return const Center(
-                      child: Text('لا توجد حركات تخصيص ضمن الفلاتر الحالية.'),
-                    );
-                  }
-                  return ListView.separated(
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      final isDecrease =
-                          item.transactionType == 'adjustment_decrease' ||
-                          item.transactionType == 'allocation_reversal';
-                      return ListTile(
-                        leading: Icon(
-                          isDecrease
-                              ? Icons.trending_down_outlined
-                              : Icons.trending_up_outlined,
-                          color: isDecrease
-                              ? Theme.of(context).colorScheme.error
-                              : const Color(0xFF1A7F5A),
-                        ),
-                        title: Text(
-                          '${item.typeLabel} - ${currency.format(item.amount)}',
-                        ),
-                        subtitle: Text(
-                          [
-                                item.programName,
-                                '${item.budgetSectionCode ?? '-'} - ${item.budgetSectionName ?? '-'}',
-                                item.description,
-                                item.createdByName == null
-                                    ? null
-                                    : 'بواسطة: ${item.createdByName}',
-                              ]
-                              .whereType<String>()
-                              .where((e) => e.isNotEmpty)
-                              .join('\n'),
-                        ),
-                        trailing: Text(
-                          item.transactionDate.split('.').first,
-                          textAlign: TextAlign.left,
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('إغلاق'),
-        ),
-      ],
-    );
-  }
-}
-
-class _DateFilterButton extends StatelessWidget {
-  const _DateFilterButton({required this.label, required this.onPressed});
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: const Icon(Icons.date_range_outlined),
-      label: Text(label),
-    );
-  }
-}
-
-class _FundingDialog extends StatefulWidget {
-  const _FundingDialog({
-    required this.programs,
-    required this.sections,
-    this.initialValue,
-    this.activeFiscalYear,
-  });
-
-  final List<ProgramItem> programs;
-  final List<BudgetSectionItem> sections;
-  final FundingItem? initialValue;
-  final int? activeFiscalYear;
-
-  @override
-  State<_FundingDialog> createState() => _FundingDialogState();
-}
-
-class _FundingDialogState extends State<_FundingDialog> {
-  final _formKey = GlobalKey<FormBuilderState>();
-  String? _programId;
-
-  @override
-  void initState() {
-    super.initState();
-    _programId = widget.initialValue?.programId;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final item = widget.initialValue;
-    final availableSections = widget.sections
-        .where(
-          (section) =>
-              _programId == null ? true : section.programId == _programId,
-        )
-        .toList();
-
-    return AlertDialog(
-      title: Text(item == null ? 'إضافة تخصيص مالي' : 'تعديل تخصيص مالي'),
-      content: SizedBox(
-        width: 560,
-        child: FormBuilder(
-          key: _formKey,
-          initialValue: {
-            'program_id': item?.programId,
-            'budget_section_id': item?.budgetSectionId,
-            'funding_reference': item?.fundingReference,
-            'fiscal_year': (item?.fiscalYear ?? widget.activeFiscalYear)
-                ?.toString(),
-            'allocated_amount': item?.allocatedAmount.toStringAsFixed(0),
-            'notes': item?.notes,
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FormBuilderDropdown<String>(
-                name: 'program_id',
-                decoration: const InputDecoration(labelText: 'البرنامج'),
-                items: widget.programs
-                    .map(
-                      (program) => DropdownMenuItem<String>(
-                        value: program.id,
-                        child: Text(program.name),
-                      ),
-                    )
-                    .toList(),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _programId = value;
-                  });
-                  _formKey.currentState?.fields['budget_section_id']?.didChange(
-                    null,
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              FormBuilderDropdown<String>(
-                name: 'budget_section_id',
-                decoration: const InputDecoration(labelText: 'الباب'),
-                items: availableSections
-                    .where((section) => section.isPostable && section.isActive)
-                    .map(
-                      (section) => DropdownMenuItem<String>(
-                        value: section.id,
-                        child: Text('${section.fullCode} - ${section.name}'),
-                      ),
-                    )
-                    .toList(),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'funding_reference',
-                decoration: const InputDecoration(labelText: 'مرجع التخصيص'),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'fiscal_year',
-                decoration: const InputDecoration(
-                  labelText: 'السنة المالية',
-                  helperText: 'تُملأ تلقائياً من السنة المالية الفعالة',
-                ),
-                validator: FormBuilderValidators.compose([
-                  FormBuilderValidators.required(errorText: 'الحقل مطلوب'),
-                  FormBuilderValidators.integer(errorText: 'أدخل رقماً صحيحاً'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'allocated_amount',
-                decoration: const InputDecoration(labelText: 'مبلغ التخصيص'),
-                validator: FormBuilderValidators.compose([
-                  FormBuilderValidators.required(errorText: 'الحقل مطلوب'),
-                  FormBuilderValidators.numeric(errorText: 'أدخل رقماً صحيحاً'),
-                ]),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'notes',
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: 'ملاحظات'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('إلغاء'),
-        ),
-        FilledButton(onPressed: _submit, child: const Text('حفظ')),
-      ],
-    );
-  }
-
-  void _submit() {
-    final formState = _formKey.currentState;
-    if (formState == null || !formState.saveAndValidate()) return;
-    final values = formState.value;
-    Navigator.of(context).pop({
-      'program_id': values['program_id']?.toString(),
-      'budget_section_id': values['budget_section_id']?.toString(),
-      'funding_reference': values['funding_reference']?.toString().trim(),
-      'fiscal_year': int.parse(values['fiscal_year'].toString()),
-      'allocated_amount': double.parse(values['allocated_amount'].toString()),
-      'notes': values['notes']?.toString().trim(),
-    });
-  }
-}
-
-class _FundingsDataSource extends DataGridSource {
-  _FundingsDataSource({
-    required this.items,
-    required this.formatter,
-    required this.onEdit,
-  });
-
-  final List<FundingItem> items;
-  final NumberFormat formatter;
-  final Future<void> Function(FundingItem item) onEdit;
-
-  @override
-  List<DataGridRow> get rows => items
-      .map(
-        (item) => DataGridRow(
-          cells: [
-            DataGridCell<FundingItem>(columnName: 'reference', value: item),
-            DataGridCell<FundingItem>(columnName: 'program', value: item),
-            DataGridCell<FundingItem>(columnName: 'section', value: item),
-            DataGridCell<FundingItem>(columnName: 'year', value: item),
-            DataGridCell<FundingItem>(
-              columnName: 'initial_amount',
-              value: item,
-            ),
-            DataGridCell<FundingItem>(
-              columnName: 'current_amount',
-              value: item,
-            ),
-            DataGridCell<FundingItem>(
-              columnName: 'reserved_amount',
-              value: item,
-            ),
-            DataGridCell<FundingItem>(columnName: 'spent_amount', value: item),
-            DataGridCell<FundingItem>(
-              columnName: 'available_amount',
-              value: item,
-            ),
-            DataGridCell<FundingItem>(columnName: 'actions', value: item),
-          ],
-        ),
-      )
-      .toList();
-
-  @override
-  DataGridRowAdapter buildRow(DataGridRow row) {
-    final item = row.getCells().first.value as FundingItem;
-    return DataGridRowAdapter(
-      cells: [
-        _GridCell(item.fundingReference),
-        _GridCell(item.programName),
-        _GridCell('${item.budgetSectionCode} - ${item.budgetSectionName}'),
-        _GridCell(item.fiscalYear.toString()),
-        _GridCell(formatter.format(item.allocatedAmount)),
-        _GridCell(formatter.format(item.currentAllocatedAmount)),
-        _GridCell(formatter.format(item.reservedAmount)),
-        _GridCell(formatter.format(item.spentAmount)),
-        _GridCell(formatter.format(item.availableAmount)),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: IconButton(
-            onPressed: () => onEdit(item),
-            icon: const Icon(Icons.edit_outlined),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _GridHeader extends StatelessWidget {
-  const _GridHeader(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _GridCell extends StatelessWidget {
-  const _GridCell(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.page,
-    required this.totalPages,
-    required this.total,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int page;
-  final int totalPages;
-  final int total;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Text('إجمالي السجلات: $total'),
-          const Spacer(),
-          OutlinedButton(onPressed: onPrevious, child: const Text('السابق')),
-          const SizedBox(width: 8),
-          Text('الصفحة $page من $totalPages'),
-          const SizedBox(width: 8),
-          OutlinedButton(onPressed: onNext, child: const Text('التالي')),
-        ],
-      ),
-    );
   }
 }

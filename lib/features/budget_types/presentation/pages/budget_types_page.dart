@@ -7,6 +7,8 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../shared/widgets/async_value_view.dart';
 import '../../models/budget_type_item.dart';
 import '../controllers/budget_types_controller.dart';
+import '../../../../shared/widgets/grid_text_cells.dart';
+import '../../../../shared/widgets/pagination_bar.dart';
 
 class BudgetTypesPage extends ConsumerStatefulWidget {
   const BudgetTypesPage({super.key});
@@ -104,28 +106,28 @@ class _BudgetTypesPageState extends ConsumerState<BudgetTypesPage> {
                         columns: [
                           GridColumn(
                             columnName: 'code',
-                            label: _GridHeader('الرمز'),
+                            label: GridHeaderText('الرمز'),
                           ),
                           GridColumn(
                             columnName: 'name',
-                            label: _GridHeader('الاسم'),
+                            label: GridHeaderText('الاسم'),
                           ),
                           GridColumn(
                             columnName: 'description',
-                            label: _GridHeader('الوصف'),
+                            label: GridHeaderText('الوصف'),
                           ),
                           GridColumn(
                             columnName: 'status',
-                            label: _GridHeader('الحالة'),
+                            label: GridHeaderText('الحالة'),
                           ),
                           GridColumn(
                             columnName: 'actions',
-                            label: _GridHeader('إجراءات'),
+                            label: GridHeaderText('إجراءات'),
                           ),
                         ],
                       ),
                     ),
-                    _PaginationBar(
+                    PaginationBar(
                       page: state.result.pagination.page,
                       totalPages: state.result.pagination.totalPages,
                       total: state.result.pagination.total,
@@ -316,10 +318,10 @@ class _BudgetTypesDataSource extends DataGridSource {
     final item = row.getCells().first.value as BudgetTypeItem;
     return DataGridRowAdapter(
       cells: [
-        _GridCell(item.code),
-        _GridCell(item.name),
-        _GridCell(item.description ?? '-'),
-        _GridCell(item.isActive ? 'فعال' : 'معطل'),
+        GridCellText(item.code),
+        GridCellText(item.name),
+        GridCellText(item.description ?? '-'),
+        GridCellText(item.isActive ? 'فعال' : 'معطل'),
         Padding(
           padding: const EdgeInsets.all(8),
           child: Row(
@@ -338,68 +340,6 @@ class _BudgetTypesDataSource extends DataGridSource {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _GridHeader extends StatelessWidget {
-  const _GridHeader(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _GridCell extends StatelessWidget {
-  const _GridCell(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.page,
-    required this.totalPages,
-    required this.total,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int page;
-  final int totalPages;
-  final int total;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Text('إجمالي السجلات: $total'),
-          const Spacer(),
-          OutlinedButton(onPressed: onPrevious, child: const Text('السابق')),
-          const SizedBox(width: 8),
-          Text('الصفحة $page من $totalPages'),
-          const SizedBox(width: 8),
-          OutlinedButton(onPressed: onNext, child: const Text('التالي')),
-        ],
-      ),
     );
   }
 }

@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
@@ -20,6 +18,14 @@ import '../../../reservations/presentation/controllers/reservations_controller.d
 import '../../models/expense_item.dart';
 import '../../services/expense_document_print_service.dart';
 import '../controllers/expenses_controller.dart';
+import '../../../../shared/widgets/date_filter_field.dart';
+import '../../../../shared/widgets/grid_text_cells.dart';
+import '../../../../shared/widgets/pagination_bar.dart';
+import '../../../../shared/widgets/summary_title.dart';
+import '../widgets/expense_form_dialog.dart';
+import '../widgets/cancel_expense_dialog.dart';
+import '../widgets/expenses_grid.dart';
+import '../widgets/expenses_summary.dart';
 
 class ExpensesPage extends ConsumerStatefulWidget {
   const ExpensesPage({
@@ -185,7 +191,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                   error: (_, __) => const Text('تعذر تحميل الحجوزات'),
                 ),
               ),
-              _DateFilterField(
+              DateFilterField(
                 label: 'من تاريخ',
                 value: _dateFrom,
                 formatter: _filterDateFormat,
@@ -193,7 +199,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                   _dateFrom = value;
                 }),
               ),
-              _DateFilterField(
+              DateFilterField(
                 label: 'إلى تاريخ',
                 value: _dateTo,
                 formatter: _filterDateFormat,
@@ -216,7 +222,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                 onRetry: () =>
                     ref.read(expensesControllerProvider.notifier).refresh(),
                 data: (state) {
-                  final summary = _ExpensePageSummary.fromItems(
+                  final summary = ExpensePageSummary.fromItems(
                     state.result.items,
                   );
                   return Column(
@@ -226,7 +232,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const _SummaryTitle(
+                            const SummaryTitle(
                               title: 'ملخص الصرف',
                               subtitle:
                                   'يعرض مصروفات الصفحة الحالية حسب البحث والفترة المختارة',
@@ -236,23 +242,23 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                               spacing: 12,
                               runSpacing: 12,
                               children: [
-                                _SummaryCard(
+                                ExpenseSummaryCard(
                                   title: 'السجلات ضمن الفلترة',
                                   value: state.result.pagination.total
                                       .toString(),
                                   subtitle: 'حسب البحث والفترة المختارة',
                                 ),
-                                _SummaryCard(
+                                ExpenseSummaryCard(
                                   title: 'الصرف الفعال',
                                   value: summary.activeCount.toString(),
                                   subtitle: 'سجلات غير ملغية',
                                 ),
-                                _SummaryCard(
+                                ExpenseSummaryCard(
                                   title: 'مصروف الصفحة الحالية',
                                   value: currency.format(summary.totalPaid),
                                   subtitle: 'لا يشمل الصرف الملغي',
                                 ),
-                                _SummaryCard(
+                                ExpenseSummaryCard(
                                   title: 'الصرف الملغي',
                                   value: currency.format(
                                     summary.cancelledAmount,
@@ -268,7 +274,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                       const Divider(height: 24),
                       Expanded(
                         child: SfDataGrid(
-                          source: _ExpensesDataSource(
+                          source: ExpensesDataSource(
                             items: state.result.items,
                             formatter: currency,
                             onCancel: canCancel ? _cancelExpense : null,
@@ -289,40 +295,40 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                           columns: [
                             GridColumn(
                               columnName: 'number',
-                              label: const _GridHeader('رقم الصرف'),
+                              label: const GridHeaderText('رقم الصرف'),
                             ),
                             GridColumn(
                               columnName: 'reservation',
-                              label: const _GridHeader('رقم الحجز'),
+                              label: const GridHeaderText('رقم الحجز'),
                             ),
                             GridColumn(
                               columnName: 'section',
-                              label: const _GridHeader('الباب'),
+                              label: const GridHeaderText('الباب'),
                             ),
                             GridColumn(
                               columnName: 'amount',
-                              label: const _GridHeader('المبلغ'),
+                              label: const GridHeaderText('المبلغ'),
                             ),
                             GridColumn(
                               columnName: 'date',
-                              label: const _GridHeader('تاريخ الصرف'),
+                              label: const GridHeaderText('تاريخ الصرف'),
                             ),
                             GridColumn(
                               columnName: 'status',
-                              label: const _GridHeader('الحالة'),
+                              label: const GridHeaderText('الحالة'),
                             ),
                             GridColumn(
                               columnName: 'documents',
-                              label: const _GridHeader('المستندات'),
+                              label: const GridHeaderText('المستندات'),
                             ),
                             GridColumn(
                               columnName: 'actions',
-                              label: const _GridHeader('إجراءات'),
+                              label: const GridHeaderText('إجراءات'),
                             ),
                           ],
                         ),
                       ),
-                      _PaginationBar(
+                      PaginationBar(
                         page: state.result.pagination.page,
                         totalPages: state.result.pagination.totalPages,
                         total: state.result.pagination.total,
@@ -353,7 +359,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
   Future<void> _openCreateDialog(List<ReservationItem> reservations) async {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => _ExpenseDialog(
+      builder: (context) => ExpenseFormDialog(
         reservations: reservations,
         initialReservationId: _reservationId,
       ),
@@ -375,7 +381,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
   Future<void> _cancelExpense(ExpenseItem item) async {
     final reason = await showDialog<String>(
       context: context,
-      builder: (context) => const _CancelExpenseDialog(),
+      builder: (context) => const CancelExpenseDialog(),
     );
     if (reason == null || reason.trim().isEmpty || !mounted) return;
 
@@ -477,691 +483,5 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
-  }
-}
-
-class _DateFilterField extends StatelessWidget {
-  const _DateFilterField({
-    required this.label,
-    required this.value,
-    required this.formatter,
-    required this.onChanged,
-  });
-
-  final String label;
-  final DateTime? value;
-  final DateFormat formatter;
-  final ValueChanged<DateTime?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 170,
-      child: TextField(
-        readOnly: true,
-        controller: TextEditingController(
-          text: value == null ? '' : formatter.format(value!),
-        ),
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.date_range_outlined),
-          suffixIcon: value == null
-              ? null
-              : IconButton(
-                  tooltip: 'مسح التاريخ',
-                  onPressed: () => onChanged(null),
-                  icon: const Icon(Icons.close),
-                ),
-        ),
-        onTap: () async {
-          final selected = await showDatePicker(
-            context: context,
-            initialDate: value ?? DateTime.now(),
-            firstDate: DateTime(2000),
-            lastDate: DateTime(2100),
-          );
-          if (selected != null) onChanged(selected);
-        },
-      ),
-    );
-  }
-}
-
-class _ExpensePageSummary {
-  const _ExpensePageSummary({
-    required this.totalPaid,
-    required this.activeCount,
-    required this.cancelledAmount,
-    required this.cancelledCount,
-  });
-
-  final double totalPaid;
-  final int activeCount;
-  final double cancelledAmount;
-  final int cancelledCount;
-
-  factory _ExpensePageSummary.fromItems(List<ExpenseItem> items) {
-    var totalPaid = 0.0;
-    var activeCount = 0;
-    var cancelledAmount = 0.0;
-    var cancelledCount = 0;
-
-    for (final item in items) {
-      if (item.expenseStatus == 'cancelled') {
-        cancelledAmount += item.amount;
-        cancelledCount++;
-      } else {
-        totalPaid += item.amount;
-        activeCount++;
-      }
-    }
-
-    return _ExpensePageSummary(
-      totalPaid: totalPaid,
-      activeCount: activeCount,
-      cancelledAmount: cancelledAmount,
-      cancelledCount: cancelledCount,
-    );
-  }
-}
-
-class _SummaryTitle extends StatelessWidget {
-  const _SummaryTitle({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF123B56),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(subtitle, style: theme.textTheme.bodySmall),
-      ],
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String value;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 180,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD7E2EC)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF123B56),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExpenseDialog extends StatefulWidget {
-  const _ExpenseDialog({required this.reservations, this.initialReservationId});
-
-  final List<ReservationItem> reservations;
-  final String? initialReservationId;
-
-  @override
-  State<_ExpenseDialog> createState() => _ExpenseDialogState();
-}
-
-class _ExpenseDialogState extends State<_ExpenseDialog> {
-  final _formKey = GlobalKey<FormBuilderState>();
-  final _reservationSearchController = TextEditingController();
-  ReservationItem? _selectedReservation;
-  String _reservationSearch = '';
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.initialReservationId == null ||
-        widget.initialReservationId!.isEmpty) {
-      return;
-    }
-
-    for (final reservation in widget.reservations) {
-      if (reservation.id == widget.initialReservationId) {
-        _selectedReservation = reservation;
-        _reservationSearchController.text = reservation.reservationNumber;
-        _reservationSearch = reservation.reservationNumber;
-        break;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _reservationSearchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(
-      locale: 'ar_IQ',
-      symbol: 'د.ع',
-      decimalDigits: 0,
-    );
-    final visibleReservations = widget.reservations.where((item) {
-      final query = _reservationSearch.trim().toLowerCase();
-      if (query.isEmpty) return true;
-      final haystack = [
-        item.reservationNumber,
-        item.title,
-        item.programName,
-        item.budgetSectionName,
-        item.fundingReference,
-      ].join(' ').toLowerCase();
-      return haystack.contains(query);
-    }).toList();
-
-    return AlertDialog(
-      title: const Text('إضافة صرف'),
-      content: SizedBox(
-        width: 620,
-        height: MediaQuery.sizeOf(context).height * 0.72,
-        child: FormBuilder(
-          key: _formKey,
-          initialValue: {
-            'reservation_id': _selectedReservation?.id,
-            'expense_date': DateTime.now(),
-            'document_date': DateTime.now(),
-          },
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              if (widget.reservations.isEmpty) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF1D6),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE9B44C)),
-                  ),
-                  child: const Text(
-                    'لا توجد حجوزات قابلة للصرف. يجب أولاً إرسال الحجز للمراجعة ثم اعتماده من صفحة الحجوزات.',
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              TextField(
-                controller: _reservationSearchController,
-                enabled: widget.reservations.isNotEmpty,
-                decoration: const InputDecoration(
-                  labelText: 'بحث عن الحجز',
-                  hintText: 'رقم الحجز، العنوان، الباب، البرنامج، التخصيص',
-                  prefixIcon: Icon(Icons.search),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _reservationSearch = value;
-                    _selectedReservation = null;
-                  });
-                  _formKey.currentState?.fields['reservation_id']?.didChange(
-                    null,
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              FormBuilderDropdown<String>(
-                name: 'reservation_id',
-                decoration: const InputDecoration(labelText: 'الحجز'),
-                enabled: visibleReservations.isNotEmpty,
-                items: visibleReservations
-                    .map(
-                      (item) => DropdownMenuItem<String>(
-                        value: item.id,
-                        child: Text(
-                          '${item.reservationNumber} - ${item.title} - ${item.budgetSectionName}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    )
-                    .toList(),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedReservation = null;
-                    for (final item in widget.reservations) {
-                      if (item.id == value) {
-                        _selectedReservation = item;
-                        break;
-                      }
-                    }
-                  });
-                },
-              ),
-              if (widget.reservations.isNotEmpty &&
-                  visibleReservations.isEmpty) ...[
-                const SizedBox(height: 8),
-                const Align(
-                  alignment: Alignment.centerRight,
-                  child: Text('لا توجد حجوزات مطابقة للبحث.'),
-                ),
-              ],
-              if (_selectedReservation != null) ...[
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FA),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFC9D6DF)),
-                  ),
-                  child: Wrap(
-                    spacing: 18,
-                    runSpacing: 8,
-                    children: [
-                      Text(
-                        'مبلغ الحجز: ${currency.format(_selectedReservation!.reservedAmount)}',
-                      ),
-                      Text(
-                        'المصروف سابقاً: ${currency.format(_selectedReservation!.spentAmount)}',
-                      ),
-                      Text(
-                        'المتبقي: ${currency.format(_selectedReservation!.remainingAmount)}',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'expense_number',
-                decoration: const InputDecoration(labelText: 'رقم الصرف'),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'amount',
-                decoration: const InputDecoration(labelText: 'مبلغ الصرف'),
-                validator: FormBuilderValidators.compose([
-                  FormBuilderValidators.required(errorText: 'الحقل مطلوب'),
-                  FormBuilderValidators.numeric(errorText: 'أدخل رقماً صحيحاً'),
-                  (value) {
-                    final amount = double.tryParse(value?.toString() ?? '');
-                    final remaining = _selectedReservation?.remainingAmount;
-                    if (amount != null &&
-                        remaining != null &&
-                        amount > remaining) {
-                      return 'المبلغ أكبر من المتبقي بالحجز';
-                    }
-                    return null;
-                  },
-                ]),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderDateTimePicker(
-                name: 'expense_date',
-                inputType: InputType.date,
-                format: DateFormat('yyyy-MM-dd'),
-                decoration: const InputDecoration(labelText: 'تاريخ الصرف'),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderDropdown<String>(
-                name: 'payment_method',
-                decoration: const InputDecoration(labelText: 'طريقة الدفع'),
-                items: const [
-                  DropdownMenuItem(value: 'cash', child: Text('نقدي')),
-                  DropdownMenuItem(
-                    value: 'bank_transfer',
-                    child: Text('حوالة مصرفية'),
-                  ),
-                  DropdownMenuItem(value: 'check', child: Text('صك')),
-                  DropdownMenuItem(
-                    value: 'electronic',
-                    child: Text('دفع إلكتروني'),
-                  ),
-                  DropdownMenuItem(value: 'other', child: Text('أخرى')),
-                ],
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'document_number',
-                decoration: const InputDecoration(labelText: 'رقم المستند'),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderDateTimePicker(
-                name: 'document_date',
-                inputType: InputType.date,
-                format: DateFormat('yyyy-MM-dd'),
-                decoration: const InputDecoration(labelText: 'تاريخ المستند'),
-                validator: FormBuilderValidators.required(
-                  errorText: 'الحقل مطلوب',
-                ),
-              ),
-              const SizedBox(height: 12),
-              FormBuilderTextField(
-                name: 'description',
-                maxLines: 2,
-                decoration: const InputDecoration(labelText: 'الوصف'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('إلغاء'),
-        ),
-        FilledButton(
-          onPressed: widget.reservations.isEmpty ? null : _submit,
-          child: const Text('حفظ الصرف'),
-        ),
-      ],
-    );
-  }
-
-  void _submit() {
-    final formState = _formKey.currentState;
-    if (formState == null || !formState.saveAndValidate()) return;
-    final values = formState.value;
-    final rawDate = values['expense_date'];
-    final parsedDate = rawDate is DateTime
-        ? rawDate
-        : DateTime.parse(rawDate.toString());
-    final rawDocumentDate = values['document_date'];
-    final parsedDocumentDate = rawDocumentDate is DateTime
-        ? rawDocumentDate
-        : DateTime.parse(rawDocumentDate.toString());
-
-    Navigator.of(context).pop({
-      'reservation_id': values['reservation_id']?.toString(),
-      'expense_number': values['expense_number']?.toString().trim(),
-      'amount': double.parse(values['amount'].toString()),
-      'expense_date': DateFormat('yyyy-MM-dd').format(parsedDate),
-      'payment_method': values['payment_method']?.toString().trim(),
-      'document_number': values['document_number']?.toString().trim(),
-      'document_date': DateFormat('yyyy-MM-dd').format(parsedDocumentDate),
-      'description': values['description']?.toString().trim(),
-    });
-  }
-}
-
-class _CancelExpenseDialog extends StatefulWidget {
-  const _CancelExpenseDialog();
-
-  @override
-  State<_CancelExpenseDialog> createState() => _CancelExpenseDialogState();
-}
-
-class _CancelExpenseDialogState extends State<_CancelExpenseDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('إلغاء الصرف'),
-      content: TextField(
-        controller: _controller,
-        maxLines: 3,
-        decoration: const InputDecoration(labelText: 'سبب الإلغاء'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('تراجع'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('تأكيد الإلغاء'),
-        ),
-      ],
-    );
-  }
-}
-
-class _ExpensesDataSource extends DataGridSource {
-  _ExpensesDataSource({
-    required this.items,
-    required this.formatter,
-    required this.onAttachments,
-    required this.onPrintPaymentVoucher,
-    required this.onPrintJournalVoucher,
-    this.onCancel,
-  });
-
-  final List<ExpenseItem> items;
-  final NumberFormat formatter;
-  final Future<void> Function(ExpenseItem item) onAttachments;
-  final Future<void> Function(ExpenseItem item) onPrintPaymentVoucher;
-  final Future<void> Function(ExpenseItem item) onPrintJournalVoucher;
-  final Future<void> Function(ExpenseItem item)? onCancel;
-
-  @override
-  List<DataGridRow> get rows => items
-      .map(
-        (item) => DataGridRow(
-          cells: [
-            DataGridCell<ExpenseItem>(columnName: 'number', value: item),
-            DataGridCell<ExpenseItem>(columnName: 'reservation', value: item),
-            DataGridCell<ExpenseItem>(columnName: 'section', value: item),
-            DataGridCell<ExpenseItem>(columnName: 'amount', value: item),
-            DataGridCell<ExpenseItem>(columnName: 'date', value: item),
-            DataGridCell<ExpenseItem>(columnName: 'status', value: item),
-            DataGridCell<ExpenseItem>(columnName: 'documents', value: item),
-            DataGridCell<ExpenseItem>(columnName: 'actions', value: item),
-          ],
-        ),
-      )
-      .toList();
-
-  @override
-  DataGridRowAdapter buildRow(DataGridRow row) {
-    final item = row.getCells().first.value as ExpenseItem;
-    return DataGridRowAdapter(
-      cells: [
-        _GridCell(item.expenseNumber),
-        _GridCell(item.reservationNumber),
-        _GridCell(item.budgetSectionName),
-        _GridCell(formatter.format(item.amount)),
-        _GridCell(item.expenseDate),
-        _GridCell(item.expenseStatus == 'cancelled' ? 'ملغي' : 'مصروف'),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Center(
-            child: OutlinedButton.icon(
-              onPressed: () => onAttachments(item),
-              icon: const Icon(Icons.attach_file, size: 18),
-              label: const Text('مرفقات'),
-              style: OutlinedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: PopupMenuButton<_ExpenseAction>(
-              tooltip: 'إجراءات الصرف',
-              onSelected: (value) {
-                switch (value) {
-                  case _ExpenseAction.attachments:
-                    onAttachments(item);
-                  case _ExpenseAction.paymentVoucher:
-                    onPrintPaymentVoucher(item);
-                  case _ExpenseAction.journalVoucher:
-                    onPrintJournalVoucher(item);
-                  case _ExpenseAction.cancel:
-                    onCancel?.call(item);
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: _ExpenseAction.attachments,
-                  child: _ActionLabel(icon: Icons.attach_file, label: 'مرفقات'),
-                ),
-                const PopupMenuItem(
-                  value: _ExpenseAction.paymentVoucher,
-                  child: _ActionLabel(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'طباعة سند صرف',
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: _ExpenseAction.journalVoucher,
-                  child: _ActionLabel(
-                    icon: Icons.account_balance_outlined,
-                    label: 'طباعة مستند قيد',
-                  ),
-                ),
-                if (item.expenseStatus != 'cancelled' && onCancel != null)
-                  const PopupMenuItem(
-                    value: _ExpenseAction.cancel,
-                    child: _ActionLabel(
-                      icon: Icons.undo_outlined,
-                      label: 'إلغاء الصرف',
-                    ),
-                  ),
-              ],
-              child: const Icon(Icons.more_horiz),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-enum _ExpenseAction { attachments, paymentVoucher, journalVoucher, cancel }
-
-class _ActionLabel extends StatelessWidget {
-  const _ActionLabel({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [Icon(icon, size: 18), const SizedBox(width: 8), Text(label)],
-    );
-  }
-}
-
-class _GridHeader extends StatelessWidget {
-  const _GridHeader(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _GridCell extends StatelessWidget {
-  const _GridCell(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.page,
-    required this.totalPages,
-    required this.total,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int page;
-  final int totalPages;
-  final int total;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Text('إجمالي السجلات: $total'),
-          const Spacer(),
-          OutlinedButton(onPressed: onPrevious, child: const Text('السابق')),
-          const SizedBox(width: 8),
-          Text('الصفحة $page من $totalPages'),
-          const SizedBox(width: 8),
-          OutlinedButton(onPressed: onNext, child: const Text('التالي')),
-        ],
-      ),
-    );
   }
 }

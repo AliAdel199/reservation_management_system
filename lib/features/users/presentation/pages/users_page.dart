@@ -6,6 +6,7 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import '../../../../shared/widgets/async_value_view.dart';
 import '../../models/managed_user_item.dart';
 import '../controllers/users_controller.dart';
+import '../../../../shared/widgets/pagination_bar.dart';
 
 class UsersPage extends ConsumerStatefulWidget {
   const UsersPage({super.key});
@@ -167,7 +168,7 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                         ),
                       ),
                     ),
-                    _PaginationBar(
+                    PaginationBar(
                       page: data.result.pagination.page,
                       totalPages: data.result.pagination.totalPages,
                       total: data.result.pagination.total,
@@ -555,40 +556,6 @@ class _TextField extends StatelessWidget {
       name: name,
       decoration: InputDecoration(labelText: label),
       validator: FormBuilderValidators.required(errorText: 'الحقل مطلوب'),
-    );
-  }
-}
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.page,
-    required this.totalPages,
-    required this.total,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int page;
-  final int totalPages;
-  final int total;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Text('إجمالي السجلات: $total'),
-          const Spacer(),
-          OutlinedButton(onPressed: onPrevious, child: const Text('السابق')),
-          const SizedBox(width: 8),
-          Text('الصفحة $page من $totalPages'),
-          const SizedBox(width: 8),
-          OutlinedButton(onPressed: onNext, child: const Text('التالي')),
-        ],
-      ),
     );
   }
 }

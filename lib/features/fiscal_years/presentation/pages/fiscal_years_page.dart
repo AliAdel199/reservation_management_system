@@ -8,6 +8,8 @@ import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 import '../../../../shared/widgets/async_value_view.dart';
 import '../../models/fiscal_year_item.dart';
 import '../controllers/fiscal_years_controller.dart';
+import '../../../../shared/widgets/grid_text_cells.dart';
+import '../../../../shared/widgets/pagination_bar.dart';
 
 class FiscalYearsPage extends ConsumerStatefulWidget {
   const FiscalYearsPage({super.key});
@@ -106,32 +108,32 @@ class _FiscalYearsPageState extends ConsumerState<FiscalYearsPage> {
                         columns: [
                           GridColumn(
                             columnName: 'year',
-                            label: _GridHeader('السنة'),
+                            label: GridHeaderText('السنة'),
                           ),
                           GridColumn(
                             columnName: 'name',
-                            label: _GridHeader('الاسم'),
+                            label: GridHeaderText('الاسم'),
                           ),
                           GridColumn(
                             columnName: 'start',
-                            label: _GridHeader('البداية'),
+                            label: GridHeaderText('البداية'),
                           ),
                           GridColumn(
                             columnName: 'end',
-                            label: _GridHeader('النهاية'),
+                            label: GridHeaderText('النهاية'),
                           ),
                           GridColumn(
                             columnName: 'status',
-                            label: _GridHeader('الحالة'),
+                            label: GridHeaderText('الحالة'),
                           ),
                           GridColumn(
                             columnName: 'actions',
-                            label: _GridHeader('إجراءات'),
+                            label: GridHeaderText('إجراءات'),
                           ),
                         ],
                       ),
                     ),
-                    _PaginationBar(
+                    PaginationBar(
                       page: state.result.pagination.page,
                       totalPages: state.result.pagination.totalPages,
                       total: state.result.pagination.total,
@@ -351,11 +353,11 @@ class _FiscalYearsDataSource extends DataGridSource {
     final item = row.getCells().first.value as FiscalYearItem;
     return DataGridRowAdapter(
       cells: [
-        _GridCell(item.year.toString()),
-        _GridCell(item.name),
-        _GridCell(_shortDate(item.startDate)),
-        _GridCell(_shortDate(item.endDate)),
-        _GridCell(item.isActive ? 'نشطة' : 'غير نشطة'),
+        GridCellText(item.year.toString()),
+        GridCellText(item.name),
+        GridCellText(_shortDate(item.startDate)),
+        GridCellText(_shortDate(item.endDate)),
+        GridCellText(item.isActive ? 'نشطة' : 'غير نشطة'),
         Padding(
           padding: const EdgeInsets.all(8),
           child: Row(
@@ -383,66 +385,4 @@ class _FiscalYearsDataSource extends DataGridSource {
   }
 
   String _shortDate(String value) => value.split(' ').first;
-}
-
-class _GridHeader extends StatelessWidget {
-  const _GridHeader(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _GridCell extends StatelessWidget {
-  const _GridCell(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.page,
-    required this.totalPages,
-    required this.total,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int page;
-  final int totalPages;
-  final int total;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Text('إجمالي السجلات: $total'),
-          const Spacer(),
-          OutlinedButton(onPressed: onPrevious, child: const Text('السابق')),
-          const SizedBox(width: 8),
-          Text('الصفحة $page من $totalPages'),
-          const SizedBox(width: 8),
-          OutlinedButton(onPressed: onNext, child: const Text('التالي')),
-        ],
-      ),
-    );
-  }
 }

@@ -18,6 +18,8 @@ import '../../../programs/presentation/controllers/programs_controller.dart';
 import '../../../reports/presentation/controllers/reports_controller.dart';
 import '../../models/monthly_funding_item.dart';
 import '../controllers/monthly_fundings_controller.dart';
+import '../../../../shared/widgets/grid_text_cells.dart';
+import '../../../../shared/widgets/pagination_bar.dart';
 
 class MonthlyFundingsPage extends ConsumerStatefulWidget {
   const MonthlyFundingsPage({super.key});
@@ -213,47 +215,47 @@ class _MonthlyFundingsPageState extends ConsumerState<MonthlyFundingsPage> {
                           GridColumn(
                             columnName: 'year',
                             width: 110,
-                            label: _GridHeader('السنة'),
+                            label: GridHeaderText('السنة'),
                           ),
                           GridColumn(
                             columnName: 'program',
                             width: 220,
-                            label: _GridHeader('البرنامج'),
+                            label: GridHeaderText('البرنامج'),
                           ),
                           GridColumn(
                             columnName: 'month',
                             width: 150,
-                            label: _GridHeader('الشهر'),
+                            label: GridHeaderText('الشهر'),
                           ),
                           GridColumn(
                             columnName: 'amount',
                             width: 150,
-                            label: _GridHeader('المبلغ'),
+                            label: GridHeaderText('المبلغ'),
                           ),
                           GridColumn(
                             columnName: 'reserved',
                             width: 150,
-                            label: _GridHeader('المحجوز'),
+                            label: GridHeaderText('المحجوز'),
                           ),
                           GridColumn(
                             columnName: 'spent',
                             width: 150,
-                            label: _GridHeader('المصروف'),
+                            label: GridHeaderText('المصروف'),
                           ),
                           GridColumn(
                             columnName: 'remaining',
                             width: 150,
-                            label: _GridHeader('المتبقي'),
+                            label: GridHeaderText('المتبقي'),
                           ),
                           GridColumn(
                             columnName: 'actions',
                             width: 130,
-                            label: _GridHeader('إجراءات'),
+                            label: GridHeaderText('إجراءات'),
                           ),
                         ],
                       ),
                     ),
-                    _PaginationBar(
+                    PaginationBar(
                       page: value.result.pagination.page,
                       totalPages: value.result.pagination.totalPages,
                       total: value.result.pagination.total,
@@ -655,20 +657,6 @@ String _monthName(int month) {
   return names[month - 1];
 }
 
-class _GridHeader extends StatelessWidget {
-  const _GridHeader(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Align(alignment: Alignment.centerRight, child: Text(text)),
-    );
-  }
-}
-
 class _GridCell extends StatelessWidget {
   const _GridCell(this.text, {this.color});
 
@@ -687,40 +675,6 @@ class _GridCell extends StatelessWidget {
               ? null
               : TextStyle(color: color, fontWeight: FontWeight.w800),
         ),
-      ),
-    );
-  }
-}
-
-class _PaginationBar extends StatelessWidget {
-  const _PaginationBar({
-    required this.page,
-    required this.totalPages,
-    required this.total,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int page;
-  final int totalPages;
-  final int total;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          Text('إجمالي السجلات: $total'),
-          const Spacer(),
-          OutlinedButton(onPressed: onPrevious, child: const Text('السابق')),
-          const SizedBox(width: 8),
-          Text('الصفحة $page من $totalPages'),
-          const SizedBox(width: 8),
-          OutlinedButton(onPressed: onNext, child: const Text('التالي')),
-        ],
       ),
     );
   }
