@@ -67,6 +67,16 @@ class FiscalYearsRepository {
     }
   }
 
+  Future<void> setFiscalYearLocked(String id, {required bool locked}) async {
+    try {
+      await _apiClient.instance.patch(
+        '/fiscal-years/$id/${locked ? 'lock' : 'unlock'}',
+      );
+    } on DioException catch (exception) {
+      throw AppException.fromDioException(exception);
+    }
+  }
+
   Future<void> deleteFiscalYear(String id) async {
     try {
       await _apiClient.instance.delete('/fiscal-years/$id');

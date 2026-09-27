@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
 import '../../../../shared/widgets/async_value_view.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../models/fiscal_year_item.dart';
 import '../controllers/fiscal_years_controller.dart';
 import '../../../../shared/widgets/grid_text_cells.dart';
@@ -30,6 +31,8 @@ class _FiscalYearsPageState extends ConsumerState<FiscalYearsPage> {
   @override
   Widget build(BuildContext context) {
     final fiscalYearsState = ref.watch(fiscalYearsControllerProvider);
+    final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
+    final canLock = currentUser?.canLockFiscalYears ?? false;
 
     ref.listen(fiscalYearsControllerProvider, (previous, next) {
       if (next.hasError && next.error != null && mounted) {
@@ -103,6 +106,7 @@ class _FiscalYearsPageState extends ConsumerState<FiscalYearsPage> {
                           onEdit: _openEditDialog,
                           onActivate: _activateFiscalYear,
                           onDelete: _deleteFiscalYear,
+                          onToggleLock: canLock ? _toggleLock : null,
                         ),
                         columnWidthMode: ColumnWidthMode.fill,
                         columns: [
@@ -204,6 +208,53 @@ class _FiscalYearsPageState extends ConsumerState<FiscalYearsPage> {
     );
     if (confirmed != true || !mounted) return;
     await ref.read(fiscalYearsControllerProvider.notifier).remove(item.id);
+  }
+
+  Future<void> _toggleLock(FiscalYearItem item) async {
+    final locking = !item.isLocked;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(locking ? 'قفل السنة المالية' : 'فتح السنة المالية'),
+        content: Text(
+          locking
+              ? 'بعد قفل "${item.name}" لن يستطيع أي مستخدم إضافة أو تعديل أو حذف '
+                    'البرامج والأبواب والتخصيصات والحجوزات والصرف التابعة لها، '
+                    'ويبقى عرضها وطباعة تقاريرها متاحاً.\n\nهل تريد المتابعة؟'
+              : 'فتح "${item.name}" يسمح بتعديل بياناتها من جديد.\n\nهل تريد المتابعة؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(locking ? 'قفل' : 'فتح'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref
+          .read(fiscalYearsControllerProvider.notifier)
+          .setLocked(item.id, locked: locking);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            locking ? 'تم قفل "${item.name}".' : 'تم فتح "${item.name}".',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
   }
 
   void _applySearch() {
@@ -325,12 +376,14 @@ class _FiscalYearsDataSource extends DataGridSource {
     required this.onEdit,
     required this.onActivate,
     required this.onDelete,
+    required this.onToggleLock,
   });
 
   final List<FiscalYearItem> items;
   final Future<void> Function(FiscalYearItem item) onEdit;
   final Future<void> Function(FiscalYearItem item) onActivate;
   final Future<void> Function(FiscalYearItem item) onDelete;
+  final Future<void> Function(FiscalYearItem item)? onToggleLock;
 
   @override
   List<DataGridRow> get rows => items
@@ -357,25 +410,35 @@ class _FiscalYearsDataSource extends DataGridSource {
         GridCellText(item.name),
         GridCellText(_shortDate(item.startDate)),
         GridCellText(_shortDate(item.endDate)),
-        GridCellText(item.isActive ? 'نشطة' : 'غير نشطة'),
+        GridCellText(_status(item)),
         Padding(
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
               IconButton(
-                onPressed: () => onEdit(item),
+                onPressed: item.isLocked ? null : () => onEdit(item),
                 icon: const Icon(Icons.edit_outlined),
-                tooltip: 'تعديل',
+                tooltip: item.isLocked ? 'السنة مقفلة' : 'تعديل',
               ),
               IconButton(
                 onPressed: item.isActive ? null : () => onActivate(item),
                 icon: const Icon(Icons.check_circle_outline),
                 tooltip: 'تفعيل',
               ),
+              if (onToggleLock != null)
+                IconButton(
+                  onPressed: () => onToggleLock!(item),
+                  icon: Icon(
+                    item.isLocked
+                        ? Icons.lock_open_outlined
+                        : Icons.lock_outline,
+                  ),
+                  tooltip: item.isLocked ? 'فتح السنة' : 'قفل السنة',
+                ),
               IconButton(
-                onPressed: () => onDelete(item),
+                onPressed: item.isLocked ? null : () => onDelete(item),
                 icon: const Icon(Icons.delete_outline),
-                tooltip: 'حذف',
+                tooltip: item.isLocked ? 'السنة مقفلة' : 'حذف',
               ),
             ],
           ),
@@ -385,4 +448,11 @@ class _FiscalYearsDataSource extends DataGridSource {
   }
 
   String _shortDate(String value) => value.split(' ').first;
+
+  String _status(FiscalYearItem item) {
+    final active = item.isActive ? 'نشطة' : 'غير نشطة';
+    if (!item.isLocked) return active;
+    final by = item.lockedByName == null ? '' : ' (${item.lockedByName})';
+    return '$active · مقفلة$by';
+  }
 }

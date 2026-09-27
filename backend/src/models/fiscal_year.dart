@@ -6,6 +6,9 @@ class FiscalYear {
     required this.startDate,
     required this.endDate,
     required this.isActive,
+    required this.isLocked,
+    required this.lockedAt,
+    required this.lockedByName,
     required this.createdAt,
   });
 
@@ -15,6 +18,9 @@ class FiscalYear {
   final String startDate;
   final String endDate;
   final bool isActive;
+  final bool isLocked;
+  final String? lockedAt;
+  final String? lockedByName;
   final String createdAt;
 
   factory FiscalYear.fromRow(Map<String, dynamic> row) {
@@ -28,6 +34,9 @@ class FiscalYear {
       startDate: row['start_date'].toString(),
       endDate: row['end_date'].toString(),
       isActive: row['is_active'] == true,
+      isLocked: row['is_locked'] == true,
+      lockedAt: row['locked_at']?.toString(),
+      lockedByName: row['locked_by_name']?.toString(),
       createdAt: row['created_at'].toString(),
     );
   }
@@ -40,6 +49,9 @@ class FiscalYear {
       'start_date': startDate,
       'end_date': endDate,
       'is_active': isActive,
+      'is_locked': isLocked,
+      'locked_at': lockedAt,
+      'locked_by_name': lockedByName,
       'created_at': createdAt,
     };
   }

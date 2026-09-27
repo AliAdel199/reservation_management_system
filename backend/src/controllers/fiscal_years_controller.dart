@@ -173,6 +173,64 @@ class FiscalYearsController {
     );
   }
 
+  Future<Response> lock(Request request, String id) =>
+      _setLocked(request, id, locked: true);
+
+  Future<Response> unlock(Request request, String id) =>
+      _setLocked(request, id, locked: false);
+
+  Future<Response> _setLocked(
+    Request request,
+    String id, {
+    required bool locked,
+  }) async {
+    final user = _requestUser(request);
+    final updated = await _database.runTx((session) async {
+      final current = await _fiscalYearsRepository.findById(session, id);
+      if (current == null) {
+        throw const AppException(
+          message: 'السنة المالية غير موجودة.',
+          statusCode: 404,
+          code: 'FISCAL_YEAR_NOT_FOUND',
+        );
+      }
+      if (current.isLocked == locked) {
+        throw AppException(
+          message: locked
+              ? 'السنة المالية مقفلة مسبقاً.'
+              : 'السنة المالية غير مقفلة.',
+          statusCode: 409,
+          code: locked ? 'FISCAL_YEAR_ALREADY_LOCKED' : 'FISCAL_YEAR_NOT_LOCKED',
+        );
+      }
+
+      final fiscalYear = await _fiscalYearsRepository.setLocked(
+        session: session,
+        id: id,
+        locked: locked,
+        userId: user.id,
+      );
+      await _auditService.log(
+        session: session,
+        actor: user,
+        action: locked ? 'FISCAL_YEAR_LOCKED' : 'FISCAL_YEAR_UNLOCKED',
+        entityName: 'fiscal_years',
+        entityId: id,
+        oldValues: current.toJson(),
+        newValues: fiscalYear.toJson(),
+      );
+      return fiscalYear;
+    });
+
+    return jsonResponse(
+      200,
+      message: locked
+          ? 'Fiscal year locked successfully.'
+          : 'Fiscal year unlocked successfully.',
+      data: updated.toJson(),
+    );
+  }
+
   Future<Response> delete(Request request, String id) async {
     final user = _requestUser(request);
     await _database.runTx((session) async {

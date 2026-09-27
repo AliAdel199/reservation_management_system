@@ -19,6 +19,7 @@ abstract final class PermissionCodes {
   static const fiscalYearsAdd = 'fiscal_years.add';
   static const fiscalYearsEdit = 'fiscal_years.edit';
   static const fiscalYearsDelete = 'fiscal_years.delete';
+  static const fiscalYearsLock = 'fiscal_years.lock';
 
   static const budgetTypesView = 'budget_types.view';
   static const budgetTypesAdd = 'budget_types.add';

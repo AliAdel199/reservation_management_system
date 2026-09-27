@@ -497,6 +497,110 @@ void main() {
     });
   });
 
+  group('قفل السنة المالية', () {
+    test('القفل صلاحية مستقلة لا يملكها المدير ولا مدخل البيانات', () async {
+      for (final role in ['ADMIN', 'DATA_ENTRY']) {
+        final (status, json) = await _call(
+          'PATCH',
+          '/api/fiscal-years/$_fiscalYearId/lock',
+          null,
+          await _userToken(role),
+        );
+        expect(status, 403, reason: '$role -> $json');
+      }
+    });
+
+    test('السنة المقفلة ترفض الإضافة والصرف والتعديل ثم تقبلها بعد الفتح', () async {
+      final reservationId = await _createReservation(amount: 1000);
+
+      final (lockStatus, lockJson) = await _call(
+        'PATCH',
+        '/api/fiscal-years/$_fiscalYearId/lock',
+      );
+      expect(lockStatus, 200, reason: '$lockJson');
+      expect((lockJson['data'] as Map)['is_locked'], isTrue);
+      // تعليق عربي: السنة مشتركة مع باقي الاختبارات، فنفتحها حتى لو فشل هذا الاختبار.
+      addTearDown(
+        () => _call('PATCH', '/api/fiscal-years/$_fiscalYearId/unlock'),
+      );
+
+      final (programStatus, programJson) = await _call('POST', '/api/programs', {
+        'code': _unique('P'),
+        'name': 'برنامج في سنة مقفلة',
+        'fiscal_year_id': _fiscalYearId,
+      });
+      expect(programStatus, 409, reason: '$programJson');
+      expect(programJson['code'], 'FISCAL_YEAR_LOCKED');
+
+      final (expenseStatus, expenseJson) = await _call(
+        'POST',
+        '/api/expenses',
+        _expenseBody(reservationId, 100),
+      );
+      expect(expenseStatus, 409, reason: '$expenseJson');
+      expect(expenseJson['code'], 'FISCAL_YEAR_LOCKED');
+      expect(
+        await _count(
+          'SELECT COUNT(*) FROM expenses WHERE reservation_id = @id::uuid',
+          {'id': reservationId},
+        ),
+        0,
+      );
+
+      final year = (await _database.connection.execute(
+        Sql.named(
+          'SELECT year, start_date::text, end_date::text FROM fiscal_years WHERE id = @id::uuid',
+        ),
+        parameters: {'id': _fiscalYearId},
+      )).first;
+      final (renameStatus, renameJson) = await _call(
+        'PUT',
+        '/api/fiscal-years/$_fiscalYearId',
+        {
+          'year': year[0],
+          'name': 'اسم جديد',
+          'start_date': year[1],
+          'end_date': year[2],
+          'is_active': true,
+        },
+      );
+      expect(renameStatus, 409, reason: '$renameJson');
+      expect(renameJson['code'], 'FISCAL_YEAR_LOCKED');
+
+      final (relockStatus, _) = await _call(
+        'PATCH',
+        '/api/fiscal-years/$_fiscalYearId/lock',
+      );
+      expect(relockStatus, 409);
+
+      final (unlockStatus, unlockJson) = await _call(
+        'PATCH',
+        '/api/fiscal-years/$_fiscalYearId/unlock',
+      );
+      expect(unlockStatus, 200, reason: '$unlockJson');
+      expect((unlockJson['data'] as Map)['is_locked'], isFalse);
+
+      final (afterStatus, afterJson) = await _call(
+        'POST',
+        '/api/expenses',
+        _expenseBody(reservationId, 100),
+      );
+      expect(afterStatus, 201, reason: '$afterJson');
+
+      expect(
+        await _count(
+          '''
+          SELECT COUNT(*) FROM audit_logs
+          WHERE entity_id = @id::uuid
+            AND action IN ('FISCAL_YEAR_LOCKED', 'FISCAL_YEAR_UNLOCKED')
+          ''',
+          {'id': _fiscalYearId},
+        ),
+        greaterThanOrEqualTo(2),
+      );
+    });
+  });
+
   group('سجل التدقيق', () {
     test('لا يمكن تعديل أو حذف سجل التدقيق', () async {
       final row = await _database.connection.execute(

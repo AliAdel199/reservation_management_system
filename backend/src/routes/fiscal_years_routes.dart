@@ -49,4 +49,20 @@ void registerFiscalYearsRoutes(
       permission: PermissionCodes.fiscalYearsEdit,
     )(request),
   );
+  router.patch(
+    '/api/fiscal-years/<id>/lock',
+    (request) => protectedRoute(
+      jwtService,
+      (request) => controller.lock(request, request.params['id']!),
+      permission: PermissionCodes.fiscalYearsLock,
+    )(request),
+  );
+  router.patch(
+    '/api/fiscal-years/<id>/unlock',
+    (request) => protectedRoute(
+      jwtService,
+      (request) => controller.unlock(request, request.params['id']!),
+      permission: PermissionCodes.fiscalYearsLock,
+    )(request),
+  );
 }

@@ -75,6 +75,7 @@ class AuthUser {
   bool get canAddPrograms => hasPermission('programs.add');
   bool get canEditPrograms => hasPermission('programs.edit');
   bool get canDeletePrograms => hasPermission('programs.delete');
+  bool get canLockFiscalYears => hasPermission('fiscal_years.lock');
 
   bool get canAddBudgetSections => hasPermission('budget_sections.add');
   bool get canEditBudgetSections => hasPermission('budget_sections.edit');

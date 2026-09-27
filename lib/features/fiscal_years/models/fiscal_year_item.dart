@@ -6,6 +6,9 @@ class FiscalYearItem {
     required this.startDate,
     required this.endDate,
     required this.isActive,
+    required this.isLocked,
+    required this.lockedAt,
+    required this.lockedByName,
     required this.createdAt,
   });
 
@@ -15,6 +18,9 @@ class FiscalYearItem {
   final String startDate;
   final String endDate;
   final bool isActive;
+  final bool isLocked;
+  final String? lockedAt;
+  final String? lockedByName;
   final String createdAt;
 
   factory FiscalYearItem.fromJson(Map<String, dynamic> json) {
@@ -28,6 +34,9 @@ class FiscalYearItem {
       startDate: json['start_date']?.toString() ?? '',
       endDate: json['end_date']?.toString() ?? '',
       isActive: json['is_active'] as bool? ?? false,
+      isLocked: json['is_locked'] as bool? ?? false,
+      lockedAt: json['locked_at']?.toString(),
+      lockedByName: json['locked_by_name']?.toString(),
       createdAt: json['created_at']?.toString() ?? '',
     );
   }

@@ -94,6 +94,12 @@ class FiscalYearsController extends AsyncNotifier<FiscalYearsState> {
     ref.invalidate(fiscalYearsLookupProvider);
   }
 
+  Future<void> setLocked(String id, {required bool locked}) async {
+    await _repository.setFiscalYearLocked(id, locked: locked);
+    await refresh();
+    ref.invalidate(fiscalYearsLookupProvider);
+  }
+
   Future<void> remove(String id) async {
     await _repository.deleteFiscalYear(id);
     await refresh();

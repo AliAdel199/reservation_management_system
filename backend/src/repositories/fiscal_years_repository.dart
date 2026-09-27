@@ -10,6 +10,15 @@ class FiscalYearsRepository {
 
   static const _uuid = Uuid();
 
+  static const _columns = '''
+    fy.id, fy.year, fy.name, fy.start_date, fy.end_date, fy.is_active,
+    fy.is_locked, fy.locked_at, locker.full_name AS locked_by_name, fy.created_at
+  ''';
+  static const _from = '''
+    FROM fiscal_years fy
+    LEFT JOIN users locker ON locker.id = fy.locked_by
+  ''';
+
   Future<PagedResult<FiscalYear>> list(
     Session session, {
     required String search,
@@ -35,8 +44,8 @@ class FiscalYearsRepository {
 
     final itemsResult = await session.execute(
       Sql.named('''
-        SELECT id, year, name, start_date, end_date, is_active, created_at
-        FROM fiscal_years fy
+        SELECT $_columns
+        $_from
         WHERE @search = ''
           OR fy.name ILIKE @pattern
           OR fy.year::text ILIKE @pattern
@@ -64,9 +73,9 @@ class FiscalYearsRepository {
   Future<FiscalYear?> findById(Session session, String id) async {
     final result = await session.execute(
       Sql.named('''
-        SELECT id, year, name, start_date, end_date, is_active, created_at
-        FROM fiscal_years
-        WHERE id = @id::uuid
+        SELECT $_columns
+        $_from
+        WHERE fy.id = @id::uuid
         LIMIT 1
       '''),
       parameters: {'id': id},
@@ -82,10 +91,10 @@ class FiscalYearsRepository {
   }) async {
     final result = await session.execute(
       Sql.named('''
-        SELECT id, year, name, start_date, end_date, is_active, created_at
-        FROM fiscal_years
-        WHERE year = @year
-          AND (@ignore_id = '' OR id <> @ignore_id::uuid)
+        SELECT $_columns
+        $_from
+        WHERE fy.year = @year
+          AND (@ignore_id = '' OR fy.id <> @ignore_id::uuid)
         LIMIT 1
       '''),
       parameters: {'year': year, 'ignore_id': ignoreId ?? ''},
@@ -191,6 +200,33 @@ class FiscalYearsRepository {
     if (fiscalYear == null) {
       throw const AppException(
         message: 'تعذر تحميل السنة المالية بعد تفعيلها.',
+        statusCode: 404,
+        code: 'FISCAL_YEAR_NOT_FOUND',
+      );
+    }
+    return fiscalYear;
+  }
+
+  Future<FiscalYear> setLocked({
+    required Session session,
+    required String id,
+    required bool locked,
+    required String userId,
+  }) async {
+    await session.execute(
+      Sql.named('''
+        UPDATE fiscal_years
+        SET is_locked = @locked,
+            locked_at = CASE WHEN @locked THEN NOW() END,
+            locked_by = CASE WHEN @locked THEN @user_id::uuid END
+        WHERE id = @id::uuid
+      '''),
+      parameters: {'id': id, 'locked': locked, 'user_id': userId},
+    );
+    final fiscalYear = await findById(session, id);
+    if (fiscalYear == null) {
+      throw const AppException(
+        message: 'السنة المالية غير موجودة.',
         statusCode: 404,
         code: 'FISCAL_YEAR_NOT_FOUND',
       );
