@@ -103,7 +103,7 @@ LICENSE_PUBLIC_KEY=license_public.pem
 افتح من السيرفر:
 
 ```text
-http://127.0.0.1:7070/license/status
+http://127.0.0.1:7171/license/status
 ```
 
 إذا كان الترخيص صحيحاً يظهر:

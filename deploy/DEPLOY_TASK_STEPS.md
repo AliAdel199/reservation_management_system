@@ -70,13 +70,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_s
 5. افتح منفذ API بالشبكة:
 
 ```powershell
-New-NetFirewallRule -DisplayName "Reservation Management API 7070" -Direction Inbound -Protocol TCP -LocalPort 7070 -Action Allow
+New-NetFirewallRule -DisplayName "Reservation Management API 7171" -Direction Inbound -Protocol TCP -LocalPort 7171 -Action Allow
 ```
 
 6. اختبر API على السيرفر:
 
 ```powershell
-Invoke-WebRequest -Uri "http://127.0.0.1:7070/health" -UseBasicParsing
+Invoke-WebRequest -Uri "http://127.0.0.1:7171/health" -UseBasicParsing
 ```
 
 7. اعرف IP السيرفر:
@@ -139,13 +139,13 @@ D:\reservation_management_system\deploy\app\reservation_management_system.exe
 4. اكتب IP السيرفر:
 
 ```text
-192.168.1.10:7070
+192.168.1.10:7171
 ```
 
 أو:
 
 ```text
-http://192.168.1.10:7070/api
+http://192.168.1.10:7171/api
 ```
 
 5. اضغط `اختبار وحفظ` ثم سجل دخول.

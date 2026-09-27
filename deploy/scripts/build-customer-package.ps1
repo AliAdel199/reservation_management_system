@@ -1,6 +1,6 @@
 param(
   [string]$ProjectRoot = "D:\reservation_management_system",
-  [string]$ApiBaseUrl = "http://localhost:7070/api",
+  [string]$ApiBaseUrl = "http://localhost:7171/api",
   [bool]$ObfuscateFlutter = $true,
   [bool]$RequireLicense = $true
 )

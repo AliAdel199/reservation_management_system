@@ -49,7 +49,7 @@ function Start-Api {
 }
 
 while ($true) {
-  $port = Get-EnvValue "PORT" "7070"
+  $port = Get-EnvValue "PORT" "7171"
   $healthUrl = "http://127.0.0.1:$port/health"
   $process = Get-Process -Name "reservation_api" -ErrorAction SilentlyContinue | Select-Object -First 1
 

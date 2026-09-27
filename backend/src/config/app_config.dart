@@ -57,7 +57,7 @@ class AppConfig {
     return AppConfig(
       appName: env['APP_NAME'] ?? 'Government Reservation API',
       host: env['HOST'] ?? '0.0.0.0',
-      port: int.tryParse(env['PORT'] ?? '8080') ?? 8080,
+      port: int.tryParse(env['PORT'] ?? '7171') ?? 7171,
       databaseUrl:
           env['DATABASE_URL'] ??
           'postgresql://postgres:postgres@localhost:5432/reservation_management?sslmode=disable',

@@ -22,7 +22,7 @@ class DashboardRepository {
       if (payload is! Map<String, dynamic>) {
         throw const AppException(
           message:
-              'تعذر قراءة بيانات لوحة التحكم. تأكد من أن التطبيق متصل بالـ API الصحيح على المنفذ 7070.',
+              'تعذر قراءة بيانات لوحة التحكم. تأكد من أن التطبيق متصل بالـ API الصحيح على المنفذ 7171.',
           code: 'INVALID_DASHBOARD_RESPONSE',
         );
       }

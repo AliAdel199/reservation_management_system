@@ -97,7 +97,7 @@ D:\reservation_management_system\deploy\api\.env
 ملاحظات:
 
 - `HOST=0.0.0.0` يعني الـ API يقبل اتصال من باقي الأجهزة داخل الشبكة.
-- `PORT=7070` هو المنفذ الافتراضي.
+- `PORT=7171` هو المنفذ الافتراضي.
 - يمكن تغيير كلمة مرور المدير الافتراضي من نفس الأمر.
 
 ### 3.5 تفعيل حماية الترخيص
@@ -183,10 +183,10 @@ D:\reservation_management_system\deploy\api\backups
 
 ### 3.7 فتح منفذ API في Windows Firewall
 
-حتى الأجهزة الفرعية تقدر تتصل بالسيرفر، افتح منفذ `7070`:
+حتى الأجهزة الفرعية تقدر تتصل بالسيرفر، افتح منفذ `7171`:
 
 ```powershell
-New-NetFirewallRule -DisplayName "Reservation Management API 7070" -Direction Inbound -Protocol TCP -LocalPort 7070 -Action Allow
+New-NetFirewallRule -DisplayName "Reservation Management API 7171" -Direction Inbound -Protocol TCP -LocalPort 7171 -Action Allow
 ```
 
 الغرض:
@@ -214,13 +214,13 @@ ipconfig
 نفذ:
 
 ```powershell
-Invoke-WebRequest -Uri "http://127.0.0.1:7070/health" -UseBasicParsing
+Invoke-WebRequest -Uri "http://127.0.0.1:7171/health" -UseBasicParsing
 ```
 
 إذا رجع رد ناجح، جرّب من جهاز فرعي داخل نفس الشبكة:
 
 ```powershell
-Invoke-WebRequest -Uri "http://192.168.1.10:7070/health" -UseBasicParsing
+Invoke-WebRequest -Uri "http://192.168.1.10:7171/health" -UseBasicParsing
 ```
 
 استبدل `192.168.1.10` بـ IP السيرفر الحقيقي.
@@ -270,13 +270,13 @@ D:\reservation_management_system\deploy\app\reservation_management_system.exe
 اكتب IP السيرفر والمنفذ:
 
 ```text
-192.168.1.10:7070
+192.168.1.10:7171
 ```
 
 النظام يحوله تلقائياً إلى:
 
 ```text
-http://192.168.1.10:7070/api
+http://192.168.1.10:7171/api
 ```
 
 اضغط:
@@ -330,13 +330,13 @@ Get-Content "D:\reservation_management_system\deploy\logs\reservation_api.err.lo
 داخل المؤسسة:
 
 - استخدم IP داخلي مثل `192.168.x.x`.
-- افتح فقط منفذ `7070` داخل الشبكة المحلية.
+- افتح فقط منفذ `7171` داخل الشبكة المحلية.
 
 خارج المؤسسة:
 
 - الأفضل استخدام VPN.
 - أو استخدام Domain + HTTPS عبر Reverse Proxy.
-- لا يفضل فتح منفذ `7070` مباشرة على الإنترنت.
+- لا يفضل فتح منفذ `7171` مباشرة على الإنترنت.
 
 ## 8. تحديث نسخة موجودة عند الزبون
 

@@ -39,7 +39,7 @@ dart run bin/server.dart
 
 ```bash
 flutter pub get
-flutter run -d windows --dart-define=API_BASE_URL=http://localhost:8080/api
+flutter run -d windows --dart-define=API_BASE_URL=http://localhost:7171/api
 ```
 
 ## الحساب الافتراضي

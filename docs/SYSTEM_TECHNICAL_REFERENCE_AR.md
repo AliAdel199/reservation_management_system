@@ -53,13 +53,13 @@ ReservationsPage
 `AppConstants.apiBaseUrl` يقرأ `API_BASE_URL` وقت البناء، وإلا يستخدم:
 
 ```text
-http://localhost:7070/api
+http://localhost:7171/api
 ```
 
 إذا أردت بناء نسخة تشير إلى API مختلف:
 
 ```powershell
-flutter build windows --dart-define=API_BASE_URL=http://SERVER_IP:7070/api
+flutter build windows --dart-define=API_BASE_URL=http://SERVER_IP:7171/api
 ```
 
 ### Backend
@@ -77,7 +77,7 @@ flutter build windows --dart-define=API_BASE_URL=http://SERVER_IP:7070/api
 - إنشاء repositories/controllers.
 - تشغيل `DatabaseSeeder` لإنشاء الأدوار وحساب المدير الافتراضي.
 - تركيب middlewares.
-- تشغيل السيرفر على `PORT`، غالباً `7070`.
+- تشغيل السيرفر على `PORT`، غالباً `7171`.
 
 ## 3. نمط تنظيم الواجهة
 
@@ -897,7 +897,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "D:\
 فحص API:
 
 ```powershell
-Invoke-WebRequest -Uri http://127.0.0.1:7070/health -UseBasicParsing
+Invoke-WebRequest -Uri http://127.0.0.1:7171/health -UseBasicParsing
 ```
 
 تشغيل seed تجريبي:

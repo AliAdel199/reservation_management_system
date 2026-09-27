@@ -94,13 +94,13 @@ class _ApiConnectionPageState extends ConsumerState<ApiConnectionPage> {
                             textDirection: ui.TextDirection.ltr,
                             decoration: const InputDecoration(
                               labelText: 'رابط الـ API',
-                              hintText: 'مثال: 192.168.1.10:7070',
+                              hintText: 'مثال: 192.168.1.10:7171',
                               prefixIcon: Icon(Icons.dns_outlined),
                             ),
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'سيتم تحويله تلقائياً إلى صيغة مثل: http://192.168.1.10:7070/api',
+                            'سيتم تحويله تلقائياً إلى صيغة مثل: http://192.168.1.10:7171/api',
                             style: theme.textTheme.bodySmall,
                           ),
                           const SizedBox(height: 16),
@@ -250,7 +250,7 @@ class _ApiConnectionPageState extends ConsumerState<ApiConnectionPage> {
         _statusSuccess = false;
         _statusMessage = silent
             ? _statusMessage
-            : 'فشل الاتصال. تأكد من IP السيرفر والمنفذ 7070 وتشغيل خدمة الـ API. (${error.message})';
+            : 'فشل الاتصال. تأكد من IP السيرفر والمنفذ 7171 وتشغيل خدمة الـ API. (${error.message})';
         _lastCheck = _ConnectionCheckResult(
           ok: false,
           apiBaseUrl: apiBaseUrl,

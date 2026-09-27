@@ -79,7 +79,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_s
 - يبني ملف الـ API التنفيذي داخل `D:\reservation_management_system\deploy\api\reservation_api.exe`.
 - يبني نسخة Flutter Windows النهائية داخل `D:\reservation_management_system\deploy\app`.
 - يجهز ملفات النسخة التي سيتم تسليمها للزبون.
-- يستخدم رابط API الافتراضي `http://localhost:7070/api` داخل نسخة Flutter.
+- يستخدم رابط API الافتراضي `http://localhost:7171/api` داخل نسخة Flutter.
 - يبني نسخة Flutter مع `--obfuscate` افتراضياً لتقليل قابلية قراءة الكود عند الهندسة العكسية.
 - ملفات الرموز الخاصة بفك التتبع تحفظ عند المطور داخل `build\symbols\customer` ولا تُسلّم للزبون.
 - يبني API الزبون مع `LICENSE_REQUIRED=true` افتراضياً، لذلك لا يمكن تعطيل الترخيص من ملف `.env` في نسخة التسليم.
@@ -209,7 +209,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_s
 - ينشئ ملف إعدادات الـ API باسم `.env`.
 - يكتب رابط قاعدة البيانات `DATABASE_URL`.
 - يولد `JWT_SECRET` قوي تلقائياً.
-- يحدد منفذ التشغيل الافتراضي `7070`.
+- يحدد منفذ التشغيل الافتراضي `7171`.
 - يجهز حساب المدير الافتراضي للنظام.
 
 سيتم إنشاء الملف:
@@ -254,7 +254,7 @@ ReservationManagementAPI
 والـ watchdog يفحص الرابط التالي:
 
 ```text
-http://127.0.0.1:7070/health
+http://127.0.0.1:7171/health
 ```
 
 إذا توقف الـ API أو فشل health check، يتم إعادة تشغيله تلقائياً.
@@ -384,12 +384,12 @@ Start-ScheduledTask -TaskName "ReservationManagementAPI"
 فحص صحة الـ API:
 
 ```powershell
-Invoke-WebRequest -Uri "http://127.0.0.1:7070/health" -UseBasicParsing
+Invoke-WebRequest -Uri "http://127.0.0.1:7171/health" -UseBasicParsing
 ```
 
 الغرض من الأمر:
 
-- يتأكد أن الـ API يعمل ويرد على منفذ `7070`.
+- يتأكد أن الـ API يعمل ويرد على منفذ `7171`.
 - يتأكد أن اتصال PostgreSQL يعمل من خلال فحص داخلي خفيف.
 - إذا ظهر رد ناجح فهذا يعني أن التطبيق يستطيع الاتصال بالـ API.
 
@@ -438,5 +438,5 @@ D:\reservation_management_system\deploy\sql\001_customer_database_setup.sql
 ```
 
 - بعد تغيير `PORT` داخل `.env` يجب إعادة تشغيل مهمة `ReservationManagementAPI`.
-- لا تشغل أكثر من نسخة API على نفس المنفذ `7070`.
+- لا تشغل أكثر من نسخة API على نفس المنفذ `7171`.
 - إذا ظهر خطأ أن المنفذ مستخدم، فهذا يعني أن الـ API يعمل مسبقاً أو يوجد برنامج آخر يستخدم نفس المنفذ.

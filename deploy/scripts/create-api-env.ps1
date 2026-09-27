@@ -4,7 +4,7 @@ param(
   [string]$DatabaseUser = "postgres",
   [Parameter(Mandatory = $true)]
   [string]$DatabasePassword,
-  [int]$ApiPort = 7070,
+  [int]$ApiPort = 7171,
   [string]$AdminUsername = "admin",
   [string]$AdminPassword = "Admin@12345",
   [string]$AdminFullName = "مدير النظام",
