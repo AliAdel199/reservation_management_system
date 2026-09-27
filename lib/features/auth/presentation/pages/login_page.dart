@@ -37,6 +37,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     });
 
     final authState = ref.watch(authControllerProvider);
+    final sessionNotice = ref.watch(sessionNoticeProvider);
     final isLoading = authState.isLoading;
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -108,6 +109,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 'أدخل بيانات المستخدم للوصول إلى النظام المالي.',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
+                              if (sessionNotice != null) ...[
+                                const SizedBox(height: 16),
+                                Text(
+                                  sessionNotice,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(color: colorScheme.error),
+                                ),
+                              ],
                               const SizedBox(height: 24),
                               FormBuilderTextField(
                                 name: 'identity',
