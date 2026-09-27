@@ -444,7 +444,7 @@ class FundingsRepository {
     final newSection = sections[newBudgetSectionId];
     if (newSection == null) {
       throw const AppException(
-        message: 'Budget section not found.',
+        message: 'الباب غير موجود.',
         statusCode: 404,
         code: 'BUDGET_SECTION_NOT_FOUND',
       );
@@ -470,7 +470,7 @@ class FundingsRepository {
     final oldSection = sections[oldBudgetSectionId];
     if (oldSection == null) {
       throw const AppException(
-        message: 'Original budget section not found.',
+        message: 'الباب الأصلي غير موجود.',
         statusCode: 404,
         code: 'ORIGINAL_BUDGET_SECTION_NOT_FOUND',
       );
@@ -614,7 +614,7 @@ class FundingsRepository {
 
     if (sectionResult.isEmpty) {
       throw const AppException(
-        message: 'Budget section not found.',
+        message: 'الباب غير موجود.',
         statusCode: 404,
         code: 'BUDGET_SECTION_NOT_FOUND',
       );
@@ -695,7 +695,7 @@ class FundingsRepository {
     final funding = await findById(session, id);
     if (funding == null) {
       throw const AppException(
-        message: 'Failed to load created funding.',
+        message: 'تعذر تحميل التخصيص بعد إنشائه.',
         statusCode: 500,
         code: 'FUNDING_CREATE_FAILED',
       );
@@ -740,7 +740,7 @@ class FundingsRepository {
     final funding = await findById(session, id);
     if (funding == null) {
       throw const AppException(
-        message: 'Funding not found after update.',
+        message: 'تعذر تحميل التخصيص بعد التعديل.',
         statusCode: 404,
         code: 'FUNDING_NOT_FOUND',
       );

@@ -231,7 +231,7 @@ class MonthlyFundingsRepository {
 
     if (programResult.isEmpty) {
       throw const AppException(
-        message: 'Parent program not found.',
+        message: 'البرنامج الأب غير موجود.',
         statusCode: 404,
         code: 'PROGRAM_NOT_FOUND',
       );
@@ -336,7 +336,7 @@ class MonthlyFundingsRepository {
     final monthlyFunding = await findById(session, id);
     if (monthlyFunding == null) {
       throw const AppException(
-        message: 'Failed to load created monthly funding.',
+        message: 'تعذر تحميل التمويل الشهري بعد إنشائه.',
         statusCode: 500,
         code: 'MONTHLY_FUNDING_CREATE_FAILED',
       );
@@ -386,7 +386,7 @@ class MonthlyFundingsRepository {
     final monthlyFunding = await findById(session, id);
     if (monthlyFunding == null) {
       throw const AppException(
-        message: 'Monthly funding not found after update.',
+        message: 'تعذر تحميل التمويل الشهري بعد التعديل.',
         statusCode: 404,
         code: 'MONTHLY_FUNDING_NOT_FOUND',
       );

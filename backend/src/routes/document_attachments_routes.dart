@@ -11,17 +11,11 @@ void registerDocumentAttachmentsRoutes(
 ) {
   router.get(
     '/api/document-attachments',
-    protectedRoute(
-      jwtService,
-      controller.list,
-    ),
+    protectedRoute(jwtService, controller.list),
   );
   router.post(
     '/api/document-attachments',
-    protectedRoute(
-      jwtService,
-      controller.create,
-    ),
+    protectedRoute(jwtService, controller.create),
   );
   router.get(
     '/api/document-attachments/<id>/download',

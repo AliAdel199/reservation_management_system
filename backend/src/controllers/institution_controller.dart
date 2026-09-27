@@ -38,7 +38,7 @@ class InstitutionController {
 
     if (name.isEmpty) {
       throw const AppException(
-        message: 'Institution name is required.',
+        message: 'اسم المؤسسة مطلوب.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -115,7 +115,7 @@ class InstitutionController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );

@@ -105,7 +105,9 @@ class DatabaseSeeder {
       // تعليق عربي: سابقاً كانت كلمة مرور المدير تُعاد لقيمة .env مع كل تشغيل للخادم،
       // فيضيع أي تغيير لها من داخل النظام. الآن لا نلمس الحساب إلا بطلب صريح.
       if (!_config.resetDefaultAdminPassword) {
-        _logger.info('Default admin already exists — credentials left unchanged.');
+        _logger.info(
+          'Default admin already exists — credentials left unchanged.',
+        );
         return;
       }
 

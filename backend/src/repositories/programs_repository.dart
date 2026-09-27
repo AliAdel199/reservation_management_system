@@ -342,7 +342,7 @@ class ProgramsRepository {
     final program = await findById(session, id);
     if (program == null) {
       throw const AppException(
-        message: 'Failed to load created program.',
+        message: 'تعذر تحميل البرنامج بعد إنشائه.',
         statusCode: 500,
         code: 'PROGRAM_CREATE_FAILED',
       );
@@ -387,7 +387,7 @@ class ProgramsRepository {
     final program = await findById(session, id);
     if (program == null) {
       throw const AppException(
-        message: 'Program not found after update.',
+        message: 'تعذر تحميل البرنامج بعد التعديل.',
         statusCode: 404,
         code: 'PROGRAM_NOT_FOUND',
       );
@@ -404,7 +404,7 @@ class ProgramsRepository {
     final current = await findById(session, id);
     if (current == null) {
       throw const AppException(
-        message: 'Program not found.',
+        message: 'البرنامج غير موجود.',
         statusCode: 404,
         code: 'PROGRAM_NOT_FOUND',
       );

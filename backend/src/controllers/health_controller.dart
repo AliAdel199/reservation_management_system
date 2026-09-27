@@ -18,7 +18,7 @@ class HealthController {
     } catch (error) {
       return jsonResponse(
         503,
-        message: 'Service is running, but database is unavailable.',
+        message: 'الخادم يعمل لكن قاعدة البيانات غير متاحة.',
         code: 'DATABASE_UNAVAILABLE',
         data: {
           'status': 'degraded',

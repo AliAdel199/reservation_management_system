@@ -59,7 +59,7 @@ class ExpensesController {
       );
       if (reservation == null) {
         throw const AppException(
-          message: 'Reservation not found.',
+          message: 'الحجز غير موجود.',
           statusCode: 404,
           code: 'RESERVATION_NOT_FOUND',
         );
@@ -68,7 +68,7 @@ class ExpensesController {
       final status = reservation['workflow_status'].toString();
       if (status != 'approved') {
         throw const AppException(
-          message: 'Expense can be created only for approved reservations.',
+          message: 'لا يمكن الصرف إلا على حجز معتمد.',
           statusCode: 422,
           code: 'RESERVATION_NOT_APPROVED',
         );
@@ -81,8 +81,7 @@ class ExpensesController {
       // فمثلاً صرف كامل المتبقي لا يُرفض بسبب فرق 0.0000001.
       if (_toFils(payload.amount) > _toFils(remainingAmount)) {
         throw AppException(
-          message:
-              'Expense amount is greater than reservation remaining amount.',
+          message: 'مبلغ الصرف أكبر من المتبقي في الحجز.',
           statusCode: 422,
           code: 'EXPENSE_EXCEEDS_RESERVATION_REMAINING',
           details: {
@@ -187,7 +186,7 @@ class ExpensesController {
     final reason = body['cancel_reason']?.toString().trim() ?? '';
     if (reason.isEmpty) {
       throw const AppException(
-        message: 'Cancel reason is required.',
+        message: 'سبب الإلغاء مطلوب.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -197,7 +196,7 @@ class ExpensesController {
       final existing = await _expensesRepository.findById(session, id);
       if (existing == null) {
         throw const AppException(
-          message: 'Expense not found.',
+          message: 'مستند الصرف غير موجود.',
           statusCode: 404,
           code: 'EXPENSE_NOT_FOUND',
         );
@@ -212,7 +211,7 @@ class ExpensesController {
       final current = (await _expensesRepository.findById(session, id))!;
       if (current.expenseStatus == 'cancelled') {
         throw const AppException(
-          message: 'Expense is already cancelled.',
+          message: 'مستند الصرف ملغى مسبقاً.',
           statusCode: 422,
           code: 'EXPENSE_ALREADY_CANCELLED',
         );
@@ -220,7 +219,7 @@ class ExpensesController {
 
       if (reservation == null) {
         throw const AppException(
-          message: 'Reservation not found.',
+          message: 'الحجز غير موجود.',
           statusCode: 404,
           code: 'RESERVATION_NOT_FOUND',
         );
@@ -228,7 +227,7 @@ class ExpensesController {
 
       if (reservation['workflow_status'].toString() == 'closed') {
         throw const AppException(
-          message: 'Closed reservation expense cannot be cancelled.',
+          message: 'لا يمكن إلغاء صرف على حجز مغلق.',
           statusCode: 422,
           code: 'RESERVATION_CLOSED',
         );
@@ -325,15 +324,14 @@ class ExpensesController {
         amount == null ||
         expenseDate.isEmpty) {
       throw const AppException(
-        message:
-            'Reservation, expense number, amount, and expense date are required.',
+        message: 'الحجز ورقم الصرف والمبلغ وتاريخ الصرف مطلوبة.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
     }
     if (amount <= 0) {
       throw const AppException(
-        message: 'Expense amount must be greater than zero.',
+        message: 'مبلغ الصرف يجب أن يكون أكبر من صفر.',
         statusCode: 422,
         code: 'INVALID_EXPENSE_AMOUNT',
       );
@@ -341,7 +339,7 @@ class ExpensesController {
     // تعليق عربي: القاعدة تخزن NUMERIC(18,2)؛ نرفض الكسور الأدق بدل أن تُقرَّب بصمت عند الحفظ.
     if ((amount * 100 - _toFils(amount)).abs() > 1e-6) {
       throw const AppException(
-        message: 'Expense amount must have at most two decimal places.',
+        message: 'مبلغ الصرف يقبل منزلتين عشريتين كحد أقصى.',
         statusCode: 422,
         code: 'INVALID_EXPENSE_AMOUNT',
       );
@@ -363,7 +361,7 @@ class ExpensesController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );

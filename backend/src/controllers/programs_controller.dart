@@ -79,7 +79,7 @@ class ProgramsController {
         );
         if (fiscalYear == null) {
           throw const AppException(
-            message: 'Fiscal year not found.',
+            message: 'السنة المالية غير موجودة.',
             statusCode: 404,
             code: 'FISCAL_YEAR_NOT_FOUND',
           );
@@ -94,7 +94,7 @@ class ProgramsController {
       final existing = await _programsRepository.findByCode(session, code);
       if (existing != null) {
         throw const AppException(
-          message: 'Program code already exists.',
+          message: 'رمز البرنامج موجود مسبقاً.',
           statusCode: 409,
           code: 'PROGRAM_CODE_EXISTS',
         );
@@ -150,7 +150,7 @@ class ProgramsController {
       final current = await _programsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Program not found.',
+          message: 'البرنامج غير موجود.',
           statusCode: 404,
           code: 'PROGRAM_NOT_FOUND',
         );
@@ -163,7 +163,7 @@ class ProgramsController {
         );
         if (fiscalYear == null) {
           throw const AppException(
-            message: 'Fiscal year not found.',
+            message: 'السنة المالية غير موجودة.',
             statusCode: 404,
             code: 'FISCAL_YEAR_NOT_FOUND',
           );
@@ -179,7 +179,7 @@ class ProgramsController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Program code already exists.',
+          message: 'رمز البرنامج موجود مسبقاً.',
           statusCode: 409,
           code: 'PROGRAM_CODE_EXISTS',
         );
@@ -223,7 +223,7 @@ class ProgramsController {
       final current = await _programsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Program not found.',
+          message: 'البرنامج غير موجود.',
           statusCode: 404,
           code: 'PROGRAM_NOT_FOUND',
         );
@@ -259,7 +259,7 @@ class ProgramsController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );
@@ -277,7 +277,7 @@ class ProgramsController {
         (fiscalYear == null &&
             (fiscalYearId == null || fiscalYearId.isEmpty))) {
       throw const AppException(
-        message: 'Program name and fiscal year are required.',
+        message: 'اسم البرنامج والسنة المالية مطلوبان.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -285,7 +285,7 @@ class ProgramsController {
 
     if (fiscalYear != null && (fiscalYear < 2000 || fiscalYear > 2100)) {
       throw const AppException(
-        message: 'Fiscal year is out of the accepted range.',
+        message: 'السنة المالية خارج النطاق المسموح.',
         statusCode: 422,
         code: 'INVALID_FISCAL_YEAR',
       );

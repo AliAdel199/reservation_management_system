@@ -114,7 +114,7 @@ class BudgetTypesRepository {
     final budgetType = await findById(session, id);
     if (budgetType == null) {
       throw const AppException(
-        message: 'Failed to load created budget type.',
+        message: 'تعذر تحميل نوع الموازنة بعد إنشائه.',
         statusCode: 500,
         code: 'BUDGET_TYPE_CREATE_FAILED',
       );
@@ -150,7 +150,7 @@ class BudgetTypesRepository {
     final budgetType = await findById(session, id);
     if (budgetType == null) {
       throw const AppException(
-        message: 'Budget type not found after update.',
+        message: 'تعذر تحميل نوع الموازنة بعد التعديل.',
         statusCode: 404,
         code: 'BUDGET_TYPE_NOT_FOUND',
       );
@@ -171,7 +171,7 @@ class BudgetTypesRepository {
     );
     if (int.parse(usage.first[0].toString()) > 0) {
       throw const AppException(
-        message: 'Budget type has related financial records.',
+        message: 'لا يمكن حذف نوع الموازنة لوجود سجلات مالية مرتبطة به.',
         statusCode: 422,
         code: 'BUDGET_TYPE_IN_USE',
       );

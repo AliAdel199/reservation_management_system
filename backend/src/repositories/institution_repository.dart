@@ -18,7 +18,7 @@ class InstitutionRepository {
 
     if (result.isEmpty) {
       throw const AppException(
-        message: 'Institution settings are not initialized.',
+        message: 'معلومات المؤسسة غير مهيأة بعد.',
         statusCode: 500,
         code: 'INSTITUTION_SETTINGS_MISSING',
       );

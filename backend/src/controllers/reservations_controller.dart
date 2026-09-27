@@ -97,7 +97,7 @@ class ReservationsController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Reservation number already exists.',
+          message: 'رقم الحجز موجود مسبقاً.',
           statusCode: 409,
           code: 'RESERVATION_NUMBER_EXISTS',
         );
@@ -150,7 +150,7 @@ class ReservationsController {
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Reservation not found.',
+          message: 'الحجز غير موجود.',
           statusCode: 404,
           code: 'RESERVATION_NOT_FOUND',
         );
@@ -161,7 +161,7 @@ class ReservationsController {
           current.workflowStatus == 'completed' ||
           current.workflowStatus == 'cancelled') {
         throw const AppException(
-          message: 'Only draft or under review reservations can be edited.',
+          message: 'لا يمكن تعديل الحجز إلا وهو مسودة أو قيد المراجعة.',
           statusCode: 422,
           code: 'RESERVATION_NOT_EDITABLE',
         );
@@ -187,7 +187,7 @@ class ReservationsController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Reservation number already exists.',
+          message: 'رقم الحجز موجود مسبقاً.',
           statusCode: 409,
           code: 'RESERVATION_NUMBER_EXISTS',
         );
@@ -239,7 +239,7 @@ class ReservationsController {
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Reservation not found.',
+          message: 'الحجز غير موجود.',
           statusCode: 404,
           code: 'RESERVATION_NOT_FOUND',
         );
@@ -247,7 +247,7 @@ class ReservationsController {
 
       if (current.workflowStatus != 'draft') {
         throw const AppException(
-          message: 'Only draft reservations can be submitted for review.',
+          message: 'لا يمكن إرسال الحجز للمراجعة إلا وهو مسودة.',
           statusCode: 422,
           code: 'INVALID_RESERVATION_STATUS',
         );
@@ -288,7 +288,7 @@ class ReservationsController {
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Reservation not found.',
+          message: 'الحجز غير موجود.',
           statusCode: 404,
           code: 'RESERVATION_NOT_FOUND',
         );
@@ -297,7 +297,7 @@ class ReservationsController {
       if (current.workflowStatus != 'draft' &&
           current.workflowStatus != 'under_review') {
         throw const AppException(
-          message: 'Only reserved reservations can be approved.',
+          message: 'لا يمكن اعتماد هذا الحجز بحالته الحالية.',
           statusCode: 422,
           code: 'INVALID_RESERVATION_STATUS',
         );
@@ -353,7 +353,7 @@ class ReservationsController {
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Reservation not found.',
+          message: 'الحجز غير موجود.',
           statusCode: 404,
           code: 'RESERVATION_NOT_FOUND',
         );
@@ -364,7 +364,7 @@ class ReservationsController {
           current.workflowStatus == 'fully_spent' ||
           current.workflowStatus == 'partially_spent') {
         throw const AppException(
-          message: 'Spent or cancelled reservations cannot be cancelled.',
+          message: 'لا يمكن إلغاء حجز مصروف أو ملغى.',
           statusCode: 422,
           code: 'INVALID_RESERVATION_STATUS',
         );
@@ -376,7 +376,7 @@ class ReservationsController {
       );
       if (hasActiveExpenses) {
         throw const AppException(
-          message: 'Reservation has active expenses and cannot be cancelled.',
+          message: 'لا يمكن إلغاء الحجز لوجود صرف فعال عليه.',
           statusCode: 422,
           code: 'RESERVATION_HAS_EXPENSES',
         );
@@ -433,7 +433,7 @@ class ReservationsController {
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Reservation not found.',
+          message: 'الحجز غير موجود.',
           statusCode: 404,
           code: 'RESERVATION_NOT_FOUND',
         );
@@ -441,7 +441,7 @@ class ReservationsController {
 
       if (current.workflowStatus != 'cancelled') {
         throw const AppException(
-          message: 'Only cancelled reservations can be deleted.',
+          message: 'لا يمكن حذف الحجز إلا بعد إلغائه.',
           statusCode: 422,
           code: 'RESERVATION_DELETE_REQUIRES_CANCELLED',
         );
@@ -453,7 +453,7 @@ class ReservationsController {
       );
       if (hasActiveExpenses) {
         throw const AppException(
-          message: 'Reservation has active expenses and cannot be deleted.',
+          message: 'لا يمكن حذف الحجز لوجود صرف فعال عليه.',
           statusCode: 422,
           code: 'RESERVATION_HAS_EXPENSES',
         );
@@ -483,7 +483,7 @@ class ReservationsController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );
@@ -501,7 +501,7 @@ class ReservationsController {
     final program = await _programsRepository.findById(session, programId);
     if (program == null) {
       throw const AppException(
-        message: 'Program not found.',
+        message: 'البرنامج غير موجود.',
         statusCode: 404,
         code: 'PROGRAM_NOT_FOUND',
       );
@@ -513,7 +513,7 @@ class ReservationsController {
     );
     if (budgetSection == null) {
       throw const AppException(
-        message: 'Budget section not found.',
+        message: 'الباب غير موجود.',
         statusCode: 404,
         code: 'BUDGET_SECTION_NOT_FOUND',
       );
@@ -539,7 +539,7 @@ class ReservationsController {
     final funding = await _fundingsRepository.findById(session, fundingId);
     if (funding == null) {
       throw const AppException(
-        message: 'Funding not found.',
+        message: 'التخصيص غير موجود.',
         statusCode: 404,
         code: 'FUNDING_NOT_FOUND',
       );
@@ -548,7 +548,7 @@ class ReservationsController {
     if (funding.programId != programId ||
         funding.budgetSectionId != budgetSectionId) {
       throw const AppException(
-        message: 'Program, budget section, and funding are not aligned.',
+        message: 'البرنامج والباب والتخصيص غير متطابقة.',
         statusCode: 422,
         code: 'INVALID_FUNDING_MAPPING',
       );
@@ -606,7 +606,7 @@ class ReservationsController {
     final validReservedAmount = reservedAmount!;
     if (validReservedAmount <= 0) {
       throw const AppException(
-        message: 'Reserved amount must be greater than zero.',
+        message: 'المبلغ المحجوز يجب أن يكون أكبر من صفر.',
         statusCode: 422,
         code: 'INVALID_RESERVED_AMOUNT',
       );

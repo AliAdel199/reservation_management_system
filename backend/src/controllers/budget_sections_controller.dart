@@ -80,7 +80,7 @@ class BudgetSectionsController {
       final program = await _programsRepository.findById(session, programId);
       if (program == null) {
         throw const AppException(
-          message: 'Parent program not found.',
+          message: 'البرنامج الأب غير موجود.',
           statusCode: 404,
           code: 'PROGRAM_NOT_FOUND',
         );
@@ -174,7 +174,7 @@ class BudgetSectionsController {
       final current = await _budgetSectionsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Budget section not found.',
+          message: 'الباب غير موجود.',
           statusCode: 404,
           code: 'BUDGET_SECTION_NOT_FOUND',
         );
@@ -183,7 +183,7 @@ class BudgetSectionsController {
       final program = await _programsRepository.findById(session, programId);
       if (program == null) {
         throw const AppException(
-          message: 'Parent program not found.',
+          message: 'البرنامج الأب غير موجود.',
           statusCode: 404,
           code: 'PROGRAM_NOT_FOUND',
         );
@@ -256,7 +256,7 @@ class BudgetSectionsController {
       final current = await _budgetSectionsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Budget section not found.',
+          message: 'الباب غير موجود.',
           statusCode: 404,
           code: 'BUDGET_SECTION_NOT_FOUND',
         );
@@ -293,7 +293,7 @@ class BudgetSectionsController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );

@@ -575,7 +575,7 @@ class ReservationsRepository {
     final reservation = await findById(session, id);
     if (reservation == null) {
       throw const AppException(
-        message: 'Failed to load created reservation.',
+        message: 'تعذر تحميل الحجز بعد إنشائه.',
         statusCode: 500,
         code: 'RESERVATION_CREATE_FAILED',
       );
@@ -642,7 +642,7 @@ class ReservationsRepository {
     final reservation = await findById(session, id);
     if (reservation == null) {
       throw const AppException(
-        message: 'Reservation not found after update.',
+        message: 'تعذر تحميل الحجز بعد التعديل.',
         statusCode: 404,
         code: 'RESERVATION_NOT_FOUND',
       );
@@ -688,7 +688,7 @@ class ReservationsRepository {
     final reservation = await findById(session, id);
     if (reservation == null) {
       throw const AppException(
-        message: 'Reservation not found after status change.',
+        message: 'تعذر تحميل الحجز بعد تغيير حالته.',
         statusCode: 404,
         code: 'RESERVATION_NOT_FOUND',
       );

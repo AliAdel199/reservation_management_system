@@ -100,7 +100,7 @@ Middleware permissionMiddleware(String permission) {
           request.context[requestUserContextKey] as RequestUser?;
       if (requestUser == null) {
         throw const AppException(
-          message: 'Authentication context is missing.',
+          message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
           statusCode: 401,
           code: 'UNAUTHENTICATED',
         );
@@ -125,35 +125,6 @@ Middleware permissionMiddleware(String permission) {
 bool _hasPermission(RequestUser requestUser, String permission) =>
     requestUser.hasPermission(permission);
 
-String _permissionMessage(String permission) {
-  return switch (permission) {
-    PermissionCodes.deleteRecords =>
-      'Delete operations are allowed only for the super admin account.',
-    PermissionCodes.programsDelete ||
-    PermissionCodes.fiscalYearsDelete ||
-    PermissionCodes.budgetTypesDelete ||
-    PermissionCodes.budgetSectionsDelete ||
-    PermissionCodes.fundingsDelete ||
-    PermissionCodes.reservationsDelete =>
-      'Delete operations are allowed only for the super admin account.',
-    PermissionCodes.manageUsers =>
-      'User permissions can be managed only by the super admin account.',
-    PermissionCodes.usersView ||
-    PermissionCodes.usersAdd ||
-    PermissionCodes.usersEdit =>
-      'User permissions can be managed only by the super admin account.',
-    PermissionCodes.manageBackups =>
-      'Database backup and restore is allowed only for the super admin account.',
-    PermissionCodes.backupsView ||
-    PermissionCodes.backupsCreate ||
-    PermissionCodes.backupsRestore =>
-      'Database backup and restore is allowed only for the super admin account.',
-    PermissionCodes.viewAuditLogs =>
-      'Audit logs are not available for this account.',
-    PermissionCodes.auditLogsView =>
-      'Audit logs are not available for this account.',
-    PermissionCodes.modifyRecords =>
-      'This account has view-only access and cannot add or edit records.',
-    _ => 'You do not have permission to perform this action.',
-  };
-}
+// تعليق عربي: الصلاحيات تُمنح لكل مستخدم، فالرسالة لا تفترض أن الإجراء محصور بدور معيّن.
+String _permissionMessage(String permission) =>
+    'ليس لديك صلاحية لتنفيذ هذا الإجراء. راجع مدير النظام لمنحك الصلاحية.';

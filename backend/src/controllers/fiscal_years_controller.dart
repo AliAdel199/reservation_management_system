@@ -53,7 +53,7 @@ class FiscalYearsController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Fiscal year already exists.',
+          message: 'السنة المالية موجودة مسبقاً.',
           statusCode: 409,
           code: 'FISCAL_YEAR_EXISTS',
         );
@@ -94,7 +94,7 @@ class FiscalYearsController {
       final current = await _fiscalYearsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Fiscal year not found.',
+          message: 'السنة المالية غير موجودة.',
           statusCode: 404,
           code: 'FISCAL_YEAR_NOT_FOUND',
         );
@@ -107,7 +107,7 @@ class FiscalYearsController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Fiscal year already exists.',
+          message: 'السنة المالية موجودة مسبقاً.',
           statusCode: 409,
           code: 'FISCAL_YEAR_EXISTS',
         );
@@ -147,7 +147,7 @@ class FiscalYearsController {
       final current = await _fiscalYearsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Fiscal year not found.',
+          message: 'السنة المالية غير موجودة.',
           statusCode: 404,
           code: 'FISCAL_YEAR_NOT_FOUND',
         );
@@ -179,7 +179,7 @@ class FiscalYearsController {
       final current = await _fiscalYearsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Fiscal year not found.',
+          message: 'السنة المالية غير موجودة.',
           statusCode: 404,
           code: 'FISCAL_YEAR_NOT_FOUND',
         );
@@ -203,7 +203,7 @@ class FiscalYearsController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );
@@ -220,7 +220,7 @@ class FiscalYearsController {
 
     if (year == null || name.isEmpty || startDate.isEmpty || endDate.isEmpty) {
       throw const AppException(
-        message: 'Year, name, start date, and end date are required.',
+        message: 'السنة والاسم وتاريخ البداية وتاريخ النهاية مطلوبة.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -228,7 +228,7 @@ class FiscalYearsController {
 
     if (year < 2000 || year > 2100) {
       throw const AppException(
-        message: 'Fiscal year is out of accepted range.',
+        message: 'السنة المالية خارج النطاق المسموح.',
         statusCode: 422,
         code: 'INVALID_FISCAL_YEAR',
       );
@@ -238,7 +238,7 @@ class FiscalYearsController {
     final end = DateTime.tryParse(endDate);
     if (start == null || end == null || end.isBefore(start)) {
       throw const AppException(
-        message: 'Fiscal year dates are invalid.',
+        message: 'تواريخ السنة المالية غير صحيحة.',
         statusCode: 422,
         code: 'INVALID_FISCAL_YEAR_DATES',
       );

@@ -89,7 +89,7 @@ class LicenseService {
         enforced: false,
         valid: true,
         fingerprint: fingerprint,
-        message: 'License enforcement is disabled.',
+        message: 'التحقق من الترخيص معطل.',
         code: 'LICENSE_DISABLED',
       );
     }
@@ -100,7 +100,7 @@ class LicenseService {
         enforced: true,
         valid: false,
         fingerprint: fingerprint,
-        message: 'License file was not found.',
+        message: 'ملف الترخيص غير موجود.',
         code: 'LICENSE_FILE_MISSING',
       );
     }
@@ -111,7 +111,7 @@ class LicenseService {
         enforced: true,
         valid: false,
         fingerprint: fingerprint,
-        message: 'License public key was not found.',
+        message: 'مفتاح التحقق من الترخيص غير موجود.',
         code: 'LICENSE_PUBLIC_KEY_MISSING',
       );
     }
@@ -129,7 +129,7 @@ class LicenseService {
           enforced: true,
           valid: false,
           fingerprint: fingerprint,
-          message: 'License belongs to a different product.',
+          message: 'ملف الترخيص يخص منتجاً آخر.',
           code: 'LICENSE_PRODUCT_MISMATCH',
         );
       }
@@ -140,7 +140,7 @@ class LicenseService {
           enforced: true,
           valid: false,
           fingerprint: fingerprint,
-          message: 'License does not match this server.',
+          message: 'الترخيص لا يطابق هذا الخادم.',
           code: 'LICENSE_FINGERPRINT_MISMATCH',
           customer: payload['customer']?.toString(),
         );
@@ -155,7 +155,7 @@ class LicenseService {
           enforced: true,
           valid: false,
           fingerprint: fingerprint,
-          message: 'License metadata was modified.',
+          message: 'بيانات ملف الترخيص معدّلة.',
           code: 'LICENSE_METADATA_MISMATCH',
           customer: payload['customer']?.toString(),
         );
@@ -165,7 +165,7 @@ class LicenseService {
         enforced: true,
         valid: true,
         fingerprint: fingerprint,
-        message: 'License is valid.',
+        message: 'الترخيص صالح.',
         code: 'LICENSE_VALID',
         customer: payload['customer']?.toString(),
         expiresAt: DateTime.tryParse(payload['expires_at']?.toString() ?? ''),
@@ -175,7 +175,7 @@ class LicenseService {
         enforced: true,
         valid: false,
         fingerprint: fingerprint,
-        message: 'License has expired.',
+        message: 'انتهت صلاحية الترخيص.',
         code: 'LICENSE_EXPIRED',
       );
     } catch (_) {
@@ -183,7 +183,7 @@ class LicenseService {
         enforced: true,
         valid: false,
         fingerprint: fingerprint,
-        message: 'License is invalid or corrupted.',
+        message: 'ملف الترخيص غير صالح أو تالف.',
         code: 'LICENSE_INVALID',
       );
     }

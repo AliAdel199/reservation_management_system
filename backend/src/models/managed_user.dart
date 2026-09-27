@@ -118,6 +118,5 @@ class PermissionDefinition {
   }
 }
 
-List<String> _codes(dynamic value) => value is List
-    ? value.map((code) => code.toString()).toList()
-    : const [];
+List<String> _codes(dynamic value) =>
+    value is List ? value.map((code) => code.toString()).toList() : const [];

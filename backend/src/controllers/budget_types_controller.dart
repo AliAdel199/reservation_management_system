@@ -52,7 +52,7 @@ class BudgetTypesController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Budget type code already exists.',
+          message: 'رمز نوع الموازنة موجود مسبقاً.',
           statusCode: 409,
           code: 'BUDGET_TYPE_CODE_EXISTS',
         );
@@ -91,7 +91,7 @@ class BudgetTypesController {
       final current = await _budgetTypesRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Budget type not found.',
+          message: 'نوع الموازنة غير موجود.',
           statusCode: 404,
           code: 'BUDGET_TYPE_NOT_FOUND',
         );
@@ -104,7 +104,7 @@ class BudgetTypesController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Budget type code already exists.',
+          message: 'رمز نوع الموازنة موجود مسبقاً.',
           statusCode: 409,
           code: 'BUDGET_TYPE_CODE_EXISTS',
         );
@@ -143,7 +143,7 @@ class BudgetTypesController {
       final current = await _budgetTypesRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Budget type not found.',
+          message: 'نوع الموازنة غير موجود.',
           statusCode: 404,
           code: 'BUDGET_TYPE_NOT_FOUND',
         );
@@ -166,7 +166,7 @@ class BudgetTypesController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );
@@ -182,7 +182,7 @@ class BudgetTypesController {
 
     if (code.isEmpty || name.isEmpty) {
       throw const AppException(
-        message: 'Code and name are required.',
+        message: 'الرمز والاسم مطلوبان.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );

@@ -127,7 +127,7 @@ class AuthRepository {
 
     if (result.isEmpty) {
       throw const AppException(
-        message: 'Role not found.',
+        message: 'الدور غير موجود.',
         statusCode: 500,
         code: 'ROLE_NOT_FOUND',
       );

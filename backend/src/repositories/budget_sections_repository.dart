@@ -312,7 +312,7 @@ class BudgetSectionsRepository {
 
     if (programResult.isEmpty) {
       throw const AppException(
-        message: 'Parent program not found.',
+        message: 'البرنامج الأب غير موجود.',
         statusCode: 404,
         code: 'PROGRAM_NOT_FOUND',
       );
@@ -458,7 +458,7 @@ class BudgetSectionsRepository {
     final budgetSection = await findById(session, id);
     if (budgetSection == null) {
       throw const AppException(
-        message: 'Failed to load created budget section.',
+        message: 'تعذر تحميل الباب بعد إنشائه.',
         statusCode: 500,
         code: 'BUDGET_SECTION_CREATE_FAILED',
       );
@@ -548,7 +548,7 @@ class BudgetSectionsRepository {
     final budgetSection = await findById(session, id);
     if (budgetSection == null) {
       throw const AppException(
-        message: 'Budget section not found after update.',
+        message: 'تعذر تحميل الباب بعد التعديل.',
         statusCode: 404,
         code: 'BUDGET_SECTION_NOT_FOUND',
       );
@@ -565,7 +565,7 @@ class BudgetSectionsRepository {
     final current = await findById(session, id);
     if (current == null) {
       throw const AppException(
-        message: 'Budget section not found.',
+        message: 'الباب غير موجود.',
         statusCode: 404,
         code: 'BUDGET_SECTION_NOT_FOUND',
       );

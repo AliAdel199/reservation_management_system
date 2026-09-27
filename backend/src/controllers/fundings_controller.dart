@@ -74,7 +74,7 @@ class FundingsController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Funding reference already exists.',
+          message: 'مرجع التخصيص موجود مسبقاً.',
           statusCode: 409,
           code: 'FUNDING_REFERENCE_EXISTS',
         );
@@ -140,7 +140,7 @@ class FundingsController {
       final current = await _fundingsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Funding not found.',
+          message: 'التخصيص غير موجود.',
           statusCode: 404,
           code: 'FUNDING_NOT_FOUND',
         );
@@ -159,7 +159,7 @@ class FundingsController {
       );
       if (duplicate != null) {
         throw const AppException(
-          message: 'Funding reference already exists.',
+          message: 'مرجع التخصيص موجود مسبقاً.',
           statusCode: 409,
           code: 'FUNDING_REFERENCE_EXISTS',
         );
@@ -343,7 +343,7 @@ class FundingsController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );
@@ -359,7 +359,7 @@ class FundingsController {
     final program = await _programsRepository.findById(session, programId);
     if (program == null) {
       throw const AppException(
-        message: 'Program not found.',
+        message: 'البرنامج غير موجود.',
         statusCode: 404,
         code: 'PROGRAM_NOT_FOUND',
       );
@@ -371,7 +371,7 @@ class FundingsController {
     );
     if (budgetSection == null) {
       throw const AppException(
-        message: 'Budget section not found.',
+        message: 'الباب غير موجود.',
         statusCode: 404,
         code: 'BUDGET_SECTION_NOT_FOUND',
       );
@@ -379,7 +379,7 @@ class FundingsController {
 
     if (budgetSection.programId != programId) {
       throw const AppException(
-        message: 'Budget section does not belong to the selected program.',
+        message: 'الباب لا يتبع البرنامج المختار.',
         statusCode: 422,
         code: 'PROGRAM_BUDGET_SECTION_MISMATCH',
       );
@@ -402,8 +402,7 @@ class FundingsController {
         fiscalYear == null ||
         allocatedAmount == null) {
       throw const AppException(
-        message:
-            'Program, budget section, funding reference, fiscal year, and amount are required.',
+        message: 'البرنامج والباب ومرجع التخصيص والسنة المالية والمبلغ مطلوبة.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -411,7 +410,7 @@ class FundingsController {
 
     if (allocatedAmount <= 0) {
       throw const AppException(
-        message: 'Allocated amount must be greater than zero.',
+        message: 'مبلغ التخصيص يجب أن يكون أكبر من صفر.',
         statusCode: 422,
         code: 'INVALID_ALLOCATED_AMOUNT',
       );

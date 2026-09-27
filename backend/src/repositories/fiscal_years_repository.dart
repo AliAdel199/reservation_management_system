@@ -124,7 +124,7 @@ class FiscalYearsRepository {
     final fiscalYear = await findById(session, id);
     if (fiscalYear == null) {
       throw const AppException(
-        message: 'Failed to load created fiscal year.',
+        message: 'تعذر تحميل السنة المالية بعد إنشائها.',
         statusCode: 500,
         code: 'FISCAL_YEAR_CREATE_FAILED',
       );
@@ -171,7 +171,7 @@ class FiscalYearsRepository {
     final fiscalYear = await findById(session, id);
     if (fiscalYear == null) {
       throw const AppException(
-        message: 'Fiscal year not found after update.',
+        message: 'تعذر تحميل السنة المالية بعد التعديل.',
         statusCode: 404,
         code: 'FISCAL_YEAR_NOT_FOUND',
       );
@@ -190,7 +190,7 @@ class FiscalYearsRepository {
     final fiscalYear = await findById(session, id);
     if (fiscalYear == null) {
       throw const AppException(
-        message: 'Fiscal year not found after activation.',
+        message: 'تعذر تحميل السنة المالية بعد تفعيلها.',
         statusCode: 404,
         code: 'FISCAL_YEAR_NOT_FOUND',
       );
@@ -211,7 +211,7 @@ class FiscalYearsRepository {
     );
     if (int.parse(usage.first[0].toString()) > 0) {
       throw const AppException(
-        message: 'Fiscal year has related financial records.',
+        message: 'لا يمكن حذف السنة المالية لوجود سجلات مالية مرتبطة بها.',
         statusCode: 422,
         code: 'FISCAL_YEAR_IN_USE',
       );

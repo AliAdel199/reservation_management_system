@@ -17,10 +17,27 @@ class AppException implements Exception {
       );
     }
 
+    // تعليق عربي: رسائل Dio الافتراضية إنجليزية وتقنية، لذلك نعرض سبباً مفهوماً للمستخدم.
     return AppException(
-      message: exception.message ?? 'تعذر الاتصال بالخادم',
+      message: _connectionMessage(exception),
       statusCode: exception.response?.statusCode,
     );
+  }
+
+  static String _connectionMessage(DioException exception) {
+    return switch (exception.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout =>
+        'انتهت مهلة الاتصال بالخادم. تحقق من الشبكة وحاول مرة أخرى.',
+      DioExceptionType.connectionError =>
+        'تعذر الاتصال بالخادم. تأكد من تشغيل الخادم وصحة عنوانه في إعدادات الاتصال.',
+      DioExceptionType.badCertificate => 'شهادة أمان الخادم غير موثوقة.',
+      DioExceptionType.cancel => 'تم إلغاء الطلب.',
+      DioExceptionType.badResponse =>
+        'تعذر تنفيذ الطلب (رمز ${exception.response?.statusCode ?? '-'}). تأكد من عنوان الخادم.',
+      DioExceptionType.unknown => 'تعذر الاتصال بالخادم.',
+    };
   }
 
   @override

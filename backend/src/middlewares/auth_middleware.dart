@@ -13,7 +13,7 @@ Middleware authMiddleware(JwtService jwtService) {
       if (authorizationHeader == null ||
           !authorizationHeader.startsWith('Bearer ')) {
         throw const AppException(
-          message: 'Authorization token is missing.',
+          message: 'يرجى تسجيل الدخول أولاً.',
           statusCode: 401,
           code: 'MISSING_TOKEN',
         );
@@ -34,13 +34,13 @@ Middleware authMiddleware(JwtService jwtService) {
         return await innerHandler(enrichedRequest);
       } on JWTExpiredException {
         throw const AppException(
-          message: 'Authentication token has expired.',
+          message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
           statusCode: 401,
           code: 'TOKEN_EXPIRED',
         );
       } on JWTException {
         throw const AppException(
-          message: 'Authentication token is invalid.',
+          message: 'الجلسة غير صالحة. يرجى تسجيل الدخول مرة أخرى.',
           statusCode: 401,
           code: 'INVALID_TOKEN',
         );

@@ -58,7 +58,7 @@ class BackupsController {
     final fileName = body['file_name']?.toString().trim() ?? '';
     if (fileName.isEmpty) {
       throw const AppException(
-        message: 'Backup file name is required.',
+        message: 'اختر ملف النسخة الاحتياطية.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -102,7 +102,7 @@ class BackupsController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );

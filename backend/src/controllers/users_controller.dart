@@ -158,7 +158,7 @@ class UsersController {
       final current = await _usersRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'User not found.',
+          message: 'المستخدم غير موجود.',
           statusCode: 404,
           code: 'USER_NOT_FOUND',
         );
@@ -215,7 +215,7 @@ class UsersController {
     final isActive = body['is_active'] as bool?;
     if (isActive == null) {
       throw const AppException(
-        message: 'Status value is required.',
+        message: 'قيمة الحالة مطلوبة.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -225,7 +225,7 @@ class UsersController {
       final current = await _usersRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'User not found.',
+          message: 'المستخدم غير موجود.',
           statusCode: 404,
           code: 'USER_NOT_FOUND',
         );
@@ -261,7 +261,7 @@ class UsersController {
     final password = body['password']?.toString() ?? '';
     if (password.length < 8) {
       throw const AppException(
-        message: 'Password must be at least 8 characters.',
+        message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
         statusCode: 422,
         code: 'WEAK_PASSWORD',
       );
@@ -271,7 +271,7 @@ class UsersController {
       final current = await _usersRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'User not found.',
+          message: 'المستخدم غير موجود.',
           statusCode: 404,
           code: 'USER_NOT_FOUND',
         );
@@ -307,21 +307,21 @@ class UsersController {
         email.isEmpty ||
         roleId.isEmpty) {
       throw const AppException(
-        message: 'Username, full name, email, and role are required.',
+        message: 'اسم المستخدم والاسم الكامل والبريد الإلكتروني والدور مطلوبة.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
     }
     if (!email.contains('@')) {
       throw const AppException(
-        message: 'Email address is invalid.',
+        message: 'البريد الإلكتروني غير صحيح.',
         statusCode: 422,
         code: 'INVALID_EMAIL',
       );
     }
     if (requirePassword && password.length < 8) {
       throw const AppException(
-        message: 'Password must be at least 8 characters.',
+        message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.',
         statusCode: 422,
         code: 'WEAK_PASSWORD',
       );
@@ -349,7 +349,7 @@ class UsersController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );

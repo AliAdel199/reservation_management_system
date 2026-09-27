@@ -39,7 +39,7 @@ Middleware sessionUserMiddleware({
       );
       if (user == null || !user.isActive) {
         throw const AppException(
-          message: 'User account is disabled or no longer exists.',
+          message: 'تم تعطيل حسابك أو حذفه. يرجى مراجعة مدير النظام.',
           statusCode: 401,
           code: 'ACCOUNT_DISABLED',
         );

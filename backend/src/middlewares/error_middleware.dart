@@ -21,7 +21,7 @@ Middleware errorMiddleware(Logger logger) {
         logger.severe('Unhandled server exception.', exception, stackTrace);
         return jsonResponse(
           500,
-          message: 'An unexpected server error occurred.',
+          message: 'حدث خطأ غير متوقع في الخادم. يرجى المحاولة مرة أخرى.',
           code: 'INTERNAL_SERVER_ERROR',
         );
       }

@@ -37,7 +37,7 @@ class AuthController {
 
     if (identity.isEmpty || password.isEmpty) {
       throw const AppException(
-        message: 'Identity and password are required.',
+        message: 'اسم المستخدم وكلمة المرور مطلوبان.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -81,7 +81,7 @@ class AuthController {
 
     if (result == null) {
       throw const AppException(
-        message: 'Invalid username/email or password.',
+        message: 'اسم المستخدم أو كلمة المرور غير صحيحة.',
         statusCode: 401,
         code: 'INVALID_CREDENTIALS',
       );
@@ -98,7 +98,7 @@ class AuthController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );
@@ -111,7 +111,7 @@ class AuthController {
 
     if (user == null || !user.isActive) {
       throw const AppException(
-        message: 'User account is not available.',
+        message: 'حساب المستخدم غير متاح.',
         statusCode: 401,
         code: 'USER_NOT_FOUND',
       );

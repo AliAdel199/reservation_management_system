@@ -35,7 +35,7 @@ class DocumentAttachmentsController {
     final entityId = request.url.queryParameters['entity_id']?.trim() ?? '';
     if (entityId.isEmpty) {
       throw const AppException(
-        message: 'Entity id is required.',
+        message: 'معرّف الحجز أو مستند الصرف مطلوب.',
         statusCode: 422,
         code: 'ENTITY_ID_REQUIRED',
       );
@@ -71,7 +71,7 @@ class DocumentAttachmentsController {
         contentBase64.isEmpty) {
       throw const AppException(
         message:
-            'Entity, file name, content type, and file content are required.',
+            'بيانات المرفق ناقصة: المستند واسم الملف ونوعه ومحتواه مطلوبة.',
         statusCode: 422,
         code: 'ATTACHMENT_FIELDS_REQUIRED',
       );
@@ -85,7 +85,7 @@ class DocumentAttachmentsController {
       );
       if (!exists) {
         throw const AppException(
-          message: 'Attachment owner was not found.',
+          message: 'الحجز أو مستند الصرف المرتبط بالمرفق غير موجود.',
           statusCode: 404,
           code: 'ATTACHMENT_OWNER_NOT_FOUND',
         );
@@ -136,7 +136,7 @@ class DocumentAttachmentsController {
     final attachment = await _repository.findById(_database.connection, id);
     if (attachment == null) {
       throw const AppException(
-        message: 'Attachment not found.',
+        message: 'المرفق غير موجود.',
         statusCode: 404,
         code: 'ATTACHMENT_NOT_FOUND',
       );
@@ -160,7 +160,7 @@ class DocumentAttachmentsController {
       final attachment = await _repository.findById(session, id);
       if (attachment == null) {
         throw const AppException(
-          message: 'Attachment not found.',
+          message: 'المرفق غير موجود.',
           statusCode: 404,
           code: 'ATTACHMENT_NOT_FOUND',
         );
@@ -199,7 +199,7 @@ class DocumentAttachmentsController {
         : PermissionCodes.reservationsView;
     if (!user.hasPermission(permission)) {
       throw const AppException(
-        message: 'You do not have permission to view these attachments.',
+        message: 'ليس لديك صلاحية عرض هذه المرفقات.',
         statusCode: 403,
         code: 'FORBIDDEN',
       );
@@ -213,7 +213,7 @@ class DocumentAttachmentsController {
               user.hasPermission(PermissionCodes.reservationsEdit);
     if (!allowed) {
       throw const AppException(
-        message: 'You do not have permission to modify these attachments.',
+        message: 'ليس لديك صلاحية تعديل هذه المرفقات.',
         statusCode: 403,
         code: 'FORBIDDEN',
       );
@@ -224,7 +224,7 @@ class DocumentAttachmentsController {
     final normalized = value?.trim().toLowerCase() ?? '';
     if (normalized != 'reservation' && normalized != 'expense') {
       throw const AppException(
-        message: 'Attachment entity type must be reservation or expense.',
+        message: 'المرفق يجب أن يتبع حجزاً أو مستند صرف.',
         statusCode: 422,
         code: 'INVALID_ATTACHMENT_ENTITY_TYPE',
       );
@@ -238,7 +238,7 @@ class DocumentAttachmentsController {
       return user;
     }
     throw const AppException(
-      message: 'Authenticated user context is missing.',
+      message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
       statusCode: 401,
       code: 'AUTH_CONTEXT_MISSING',
     );

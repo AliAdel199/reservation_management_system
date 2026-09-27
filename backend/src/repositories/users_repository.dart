@@ -148,7 +148,7 @@ class UsersRepository {
       );
       if (int.parse(known.first[0].toString()) != uniqueCodes.length) {
         throw const AppException(
-          message: 'One or more permission codes are invalid.',
+          message: 'صلاحية واحدة أو أكثر غير معروفة.',
           statusCode: 422,
           code: 'INVALID_PERMISSION_CODE',
         );
@@ -230,7 +230,7 @@ class UsersRepository {
 
     if (result.isNotEmpty) {
       throw const AppException(
-        message: 'Username or email already exists.',
+        message: 'اسم المستخدم أو البريد الإلكتروني مستخدم مسبقاً.',
         statusCode: 409,
         code: 'USER_IDENTITY_EXISTS',
       );
@@ -264,7 +264,7 @@ class UsersRepository {
     final user = await findById(session, id);
     if (user == null) {
       throw const AppException(
-        message: 'Failed to load created user.',
+        message: 'تعذر تحميل المستخدم بعد إنشائه.',
         statusCode: 500,
         code: 'USER_CREATE_FAILED',
       );
@@ -306,7 +306,7 @@ class UsersRepository {
     final user = await findById(session, id);
     if (user == null) {
       throw const AppException(
-        message: 'User not found after update.',
+        message: 'تعذر تحميل المستخدم بعد التعديل.',
         statusCode: 404,
         code: 'USER_NOT_FOUND',
       );
@@ -331,7 +331,7 @@ class UsersRepository {
     final user = await findById(session, id);
     if (user == null) {
       throw const AppException(
-        message: 'User not found after status update.',
+        message: 'تعذر تحميل المستخدم بعد تغيير حالته.',
         statusCode: 404,
         code: 'USER_NOT_FOUND',
       );

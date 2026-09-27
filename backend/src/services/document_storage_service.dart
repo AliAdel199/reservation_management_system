@@ -34,14 +34,14 @@ class DocumentStorageService {
     final extension = _extensionOf(safeName);
     if (!_allowedExtensions.contains(extension)) {
       throw const AppException(
-        message: 'Only PDF, PNG, JPG, and JPEG attachments are allowed.',
+        message: 'المرفقات المسموحة: PDF وPNG وJPG وJPEG فقط.',
         statusCode: 422,
         code: 'ATTACHMENT_TYPE_NOT_ALLOWED',
       );
     }
     if (!_allowedContentTypes.contains(contentType.toLowerCase())) {
       throw const AppException(
-        message: 'Attachment content type is not allowed.',
+        message: 'نوع ملف المرفق غير مسموح.',
         statusCode: 422,
         code: 'ATTACHMENT_CONTENT_TYPE_NOT_ALLOWED',
       );
@@ -50,7 +50,7 @@ class DocumentStorageService {
     final bytes = _decodeBase64(base64Content);
     if (bytes.isEmpty || bytes.length > maxFileSizeBytes) {
       throw const AppException(
-        message: 'Attachment size must be between 1 byte and 10 MB.',
+        message: 'حجم المرفق يجب ألا يتجاوز 10 ميغابايت.',
         statusCode: 422,
         code: 'ATTACHMENT_SIZE_INVALID',
       );
@@ -81,7 +81,7 @@ class DocumentStorageService {
     final file = File(attachment.storagePath);
     if (!await file.exists()) {
       throw const AppException(
-        message: 'Attachment file was not found on the server.',
+        message: 'ملف المرفق غير موجود على الخادم.',
         statusCode: 404,
         code: 'ATTACHMENT_FILE_NOT_FOUND',
       );
@@ -104,7 +104,7 @@ class DocumentStorageService {
       return base64Decode(normalized);
     } on FormatException {
       throw const AppException(
-        message: 'Attachment content must be a valid Base64 string.',
+        message: 'محتوى المرفق غير صالح.',
         statusCode: 400,
         code: 'INVALID_ATTACHMENT_BASE64',
       );
@@ -115,7 +115,7 @@ class DocumentStorageService {
     final normalized = value.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
     if (normalized.isEmpty || !normalized.contains('.')) {
       throw const AppException(
-        message: 'Attachment file name is invalid.',
+        message: 'اسم ملف المرفق غير صالح.',
         statusCode: 422,
         code: 'INVALID_ATTACHMENT_FILE_NAME',
       );

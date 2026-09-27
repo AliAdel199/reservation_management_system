@@ -81,7 +81,7 @@ class DatabaseBackupService {
       await _deleteFileIfExists(file);
       throw AppException(
         message:
-            'Database backup failed. Make sure pg_dump is installed and PG_DUMP_PATH is correct.',
+            'فشل أخذ النسخة الاحتياطية. تأكد من تثبيت pg_dump وصحة المسار PG_DUMP_PATH.',
         statusCode: 500,
         code: 'BACKUP_FAILED',
         details: {
@@ -107,7 +107,7 @@ class DatabaseBackupService {
     final file = File(_join(directory.path, fileName));
     if (!await file.exists()) {
       throw const AppException(
-        message: 'Backup file was not found.',
+        message: 'ملف النسخة الاحتياطية غير موجود.',
         statusCode: 404,
         code: 'BACKUP_NOT_FOUND',
       );
@@ -126,7 +126,7 @@ class DatabaseBackupService {
     if (result.exitCode != 0) {
       throw AppException(
         message:
-            'Database restore failed. Make sure pg_restore is installed and PG_RESTORE_PATH is correct.',
+            'فشل استرجاع النسخة الاحتياطية. تأكد من تثبيت pg_restore وصحة المسار PG_RESTORE_PATH.',
         statusCode: 500,
         code: 'RESTORE_FAILED',
         details: {
@@ -172,7 +172,7 @@ class DatabaseBackupService {
     final valid = RegExp(r'^[A-Za-z0-9_.-]+\.dump$').hasMatch(fileName);
     if (!valid || fileName.contains('/') || fileName.contains(r'\')) {
       throw const AppException(
-        message: 'Backup file name is invalid.',
+        message: 'اسم ملف النسخة الاحتياطية غير صالح.',
         statusCode: 422,
         code: 'INVALID_BACKUP_FILE',
       );

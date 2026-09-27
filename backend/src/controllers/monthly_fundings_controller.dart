@@ -121,7 +121,7 @@ class MonthlyFundingsController {
         final current = await _monthlyFundingsRepository.findById(session, id);
         if (current == null) {
           throw const AppException(
-            message: 'Monthly funding not found.',
+            message: 'التمويل الشهري غير موجود.',
             statusCode: 404,
             code: 'MONTHLY_FUNDING_NOT_FOUND',
           );
@@ -187,7 +187,7 @@ class MonthlyFundingsController {
       final current = await _monthlyFundingsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
-          message: 'Monthly funding not found.',
+          message: 'التمويل الشهري غير موجود.',
           statusCode: 404,
           code: 'MONTHLY_FUNDING_NOT_FOUND',
         );
@@ -225,7 +225,7 @@ class MonthlyFundingsController {
     final requestUser = request.context[requestUserContextKey] as RequestUser?;
     if (requestUser == null) {
       throw const AppException(
-        message: 'Authentication context is missing.',
+        message: 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.',
         statusCode: 401,
         code: 'UNAUTHENTICATED',
       );
@@ -275,7 +275,7 @@ class MonthlyFundingsController {
         fundingDate.isEmpty) {
       throw const AppException(
         message:
-            'Fiscal year, program, month, amount, and funding date are required.',
+            'السنة المالية والبرنامج والشهر والمبلغ وتاريخ التمويل مطلوبة.',
         statusCode: 422,
         code: 'VALIDATION_ERROR',
       );
@@ -283,7 +283,7 @@ class MonthlyFundingsController {
 
     if (month < 1 || month > 12 || amount <= 0) {
       throw const AppException(
-        message: 'Month or amount is invalid.',
+        message: 'الشهر أو المبلغ غير صحيح.',
         statusCode: 422,
         code: 'INVALID_MONTHLY_FUNDING',
       );
@@ -291,7 +291,7 @@ class MonthlyFundingsController {
 
     if (DateTime.tryParse(fundingDate) == null) {
       throw const AppException(
-        message: 'Funding date is invalid.',
+        message: 'تاريخ التمويل غير صحيح.',
         statusCode: 422,
         code: 'INVALID_FUNDING_DATE',
       );

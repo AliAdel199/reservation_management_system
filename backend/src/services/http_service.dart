@@ -16,7 +16,7 @@ class HttpService {
     final decoded = jsonDecode(body);
     if (decoded is! Map<String, dynamic>) {
       throw const AppException(
-        message: 'The request body must be a JSON object.',
+        message: 'بيانات الطلب غير صالحة.',
         statusCode: 400,
         code: 'INVALID_JSON_BODY',
       );

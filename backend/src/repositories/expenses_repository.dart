@@ -293,7 +293,7 @@ class ExpensesRepository {
     final expense = await findById(session, id);
     if (expense == null) {
       throw const AppException(
-        message: 'Failed to load created expense.',
+        message: 'تعذر تحميل مستند الصرف بعد إنشائه.',
         statusCode: 500,
         code: 'EXPENSE_CREATE_FAILED',
       );
