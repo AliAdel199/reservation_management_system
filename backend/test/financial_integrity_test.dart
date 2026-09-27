@@ -12,7 +12,6 @@ library;
 
 import 'dart:convert';
 
-import 'package:dotenv/dotenv.dart';
 import 'package:logging/logging.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
@@ -21,6 +20,7 @@ import 'package:test/test.dart';
 import '../src/config/app_config.dart';
 import '../src/database/database_service.dart';
 import '../src/main.dart';
+import 'support/test_database.dart';
 
 const _adminUsername = 'test_admin';
 const _adminPassword = 'Test@12345';
@@ -45,26 +45,6 @@ List<int> _oneWinner(int success) => [
 ];
 
 String _unique(String prefix) => '$prefix-$_runId-${_sequence++}';
-
-String _testDatabaseUrl() {
-  final env = DotEnv(includePlatformEnvironment: true, quiet: true)..load();
-  final explicit = env['TEST_DATABASE_URL'];
-  final url =
-      explicit ??
-      () {
-        final uri = Uri.parse(env['DATABASE_URL']!);
-        return uri.replace(path: '${uri.path}_test').toString();
-      }();
-
-  // تعليق عربي: حماية من تشغيل الاختبارات على قاعدة العمل الفعلية بالخطأ.
-  final databaseName = Uri.parse(url).pathSegments.last;
-  if (!databaseName.endsWith('_test')) {
-    throw StateError(
-      'Refusing to run tests on "$databaseName": name must end with _test.',
-    );
-  }
-  return url;
-}
 
 Future<(int, Map<String, dynamic>)> _call(
   String method,
@@ -202,7 +182,7 @@ void main() {
       appName: 'test',
       host: 'localhost',
       port: 0,
-      databaseUrl: _testDatabaseUrl(),
+      databaseUrl: testDatabaseUrl(),
       jwtSecret: 'integration-test-secret-integration-test-secret',
       jwtExpiresInHours: 1,
       defaultAdminUsername: _adminUsername,

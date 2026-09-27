@@ -26,6 +26,7 @@ import 'controllers/reports_controller.dart';
 import 'controllers/reservations_controller.dart';
 import 'controllers/users_controller.dart';
 import 'database/database_seeder.dart';
+import 'database/migration_runner.dart';
 import 'database/database_service.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/audit_logs_repository.dart';
@@ -60,6 +61,13 @@ Future<void> startServer() async {
   final database = DatabaseService(config: config, logger: logger);
 
   await database.connect();
+  if (config.autoMigrate) {
+    await runPendingMigrations(
+      config: config,
+      database: database,
+      logger: logger,
+    );
+  }
 
   final handler = await buildServerHandler(
     config: config,
@@ -76,6 +84,36 @@ Future<void> startServer() async {
     await database.close();
     exit(0);
   });
+}
+
+// تعليق عربي: يحدّث مخطط القاعدة قبل استقبال الطلبات، مع نسخة احتياطية قبل أي تغيير.
+// أي فشل يوقف التشغيل حتى لا يعمل الخادم على مخطط لا يطابق الكود.
+Future<List<String>> runPendingMigrations({
+  required AppConfig config,
+  required DatabaseService database,
+  required Logger logger,
+}) async {
+  final runner = MigrationRunner(
+    database: database,
+    directory: config.migrationsDirectory,
+    logger: logger,
+  );
+  final status = await runner.status();
+  if (status.pending.isEmpty) {
+    logger.info('Database schema is up to date.');
+    return const [];
+  }
+
+  logger.info(
+    'Pending migrations: ${status.pending.map((m) => m.version).join(', ')}',
+  );
+  if (config.backupBeforeMigrate) {
+    final backup = await DatabaseBackupService(config).createBackup();
+    logger.info('Backup taken before migrating: ${backup.path}');
+  }
+  final applied = await runner.apply(status.pending);
+  logger.info('Applied migrations: ${applied.join(', ')}');
+  return applied;
 }
 
 // تعليق عربي: بناء خط معالجة الطلبات منفصلاً عن فتح المنفذ، حتى تستخدمه اختبارات التكامل مباشرة.

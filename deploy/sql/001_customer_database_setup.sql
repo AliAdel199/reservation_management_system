@@ -1711,5 +1711,42 @@ CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id
   ON user_permissions(user_id);
 
 
+-- ============================================================
+-- Migration history: كل الملفات أعلاه مطبقة ضمن هذا الإعداد، فيسجلها الخادم ولا يعيد تنفيذها.
+-- عند إضافة migration جديد لهذا الملف أضف اسمه هنا أيضاً.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version VARCHAR(200) PRIMARY KEY,
+  checksum VARCHAR(64) NOT NULL,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO schema_migrations (version, checksum)
+VALUES
+  ('001_initial_schema', 'setup'),
+  ('002_financial_foundation_upgrade', 'setup'),
+  ('003_fix_dashboard_remaining_formula', 'setup'),
+  ('004_add_expense_document_date', 'setup'),
+  ('005_fix_monthly_fundings_soft_delete_unique', 'setup'),
+  ('006_institution_settings', 'setup'),
+  ('006_make_monthly_fundings_program_level', 'setup'),
+  ('007_monthly_allocations_drive_total_allocation', 'setup'),
+  ('008_backfill_financial_transaction_scope', 'setup'),
+  ('009_suspend_monthly_fundings_restore_annual_allocation', 'setup'),
+  ('010_add_reservation_tracking_fields', 'setup'),
+  ('010_super_admin_permissions', 'setup'),
+  ('011_budget_sections_hierarchy', 'setup'),
+  ('012_release_partial_spent_reservation_remainder', 'setup'),
+  ('013_institution_report_signatures', 'setup'),
+  ('014_institution_report_title', 'setup'),
+  ('015_fine_grained_permissions', 'setup'),
+  ('016_document_attachments', 'setup'),
+  ('017_deduplicate_roles', 'setup'),
+  ('018_immutable_audit_logs', 'setup'),
+  ('019_user_permissions', 'setup')
+ON CONFLICT (version) DO NOTHING;
+
+
 COMMIT;
 

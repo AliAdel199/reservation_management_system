@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dotenv/dotenv.dart';
 
 class AppConfig {
@@ -21,6 +23,9 @@ class AppConfig {
     required this.pgDumpPath,
     required this.pgRestorePath,
     required this.backupRetentionDays,
+    this.migrationsDirectory = 'migrations',
+    this.autoMigrate = false,
+    this.backupBeforeMigrate = true,
   });
 
   final String appName;
@@ -42,6 +47,9 @@ class AppConfig {
   final String pgDumpPath;
   final String pgRestorePath;
   final int backupRetentionDays;
+  final String migrationsDirectory;
+  final bool autoMigrate;
+  final bool backupBeforeMigrate;
 
   factory AppConfig.fromEnvironment() {
     final env = DotEnv(includePlatformEnvironment: true, quiet: true)..load();
@@ -74,6 +82,15 @@ class AppConfig {
       pgRestorePath: env['PG_RESTORE_PATH'] ?? 'pg_restore',
       backupRetentionDays:
           int.tryParse(env['BACKUP_RETENTION_DAYS'] ?? '30') ?? 30,
+      // تعليق عربي: في حزمة العميل تكون ملفات الترحيل بجانب الـ exe، وفي التطوير داخل database/.
+      migrationsDirectory:
+          env['MIGRATIONS_DIR'] ??
+          (Directory('migrations').existsSync()
+              ? 'migrations'
+              : '../database/migrations'),
+      autoMigrate: (env['AUTO_MIGRATE'] ?? 'true').toLowerCase() == 'true',
+      backupBeforeMigrate:
+          (env['BACKUP_BEFORE_MIGRATE'] ?? 'true').toLowerCase() == 'true',
     );
   }
 

@@ -49,6 +49,13 @@ try {
   Pop-Location
 }
 
+# الخادم يطبق ملفات الترحيل الجديدة تلقائياً عند التشغيل، لذا تُنسخ بجانب reservation_api.exe.
+Write-Host "Copying database migrations..."
+$migrationsTarget = Join-Path $apiRoot "migrations"
+Remove-Item -Recurse -Force $migrationsTarget -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force $migrationsTarget | Out-Null
+Copy-Item -Path (Join-Path $repoRoot "database\migrations\*.sql") -Destination $migrationsTarget -Force
+
 Write-Host "Building Flutter Windows app..."
 Push-Location $repoRoot
 try {
