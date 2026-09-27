@@ -9,6 +9,8 @@ class ManagedUser {
     required this.roleName,
     required this.isActive,
     required this.createdAt,
+    this.customPermissions = false,
+    this.permissions = const [],
   });
 
   final String id;
@@ -20,6 +22,8 @@ class ManagedUser {
   final String roleName;
   final bool isActive;
   final String createdAt;
+  final bool customPermissions;
+  final List<String> permissions;
 
   factory ManagedUser.fromRow(Map<String, dynamic> row) {
     return ManagedUser(
@@ -32,6 +36,8 @@ class ManagedUser {
       roleName: row['role_name'].toString(),
       isActive: row['is_active'] as bool? ?? false,
       createdAt: row['created_at'].toString(),
+      customPermissions: row['custom_permissions'] as bool? ?? false,
+      permissions: _codes(row['permissions']),
     );
   }
 
@@ -46,6 +52,8 @@ class ManagedUser {
       'role_name': roleName,
       'is_active': isActive,
       'created_at': createdAt,
+      'custom_permissions': customPermissions,
+      'permissions': permissions,
     };
   }
 }
@@ -56,12 +64,14 @@ class UserRole {
     required this.code,
     required this.name,
     required this.description,
+    this.permissions = const [],
   });
 
   final String id;
   final String code;
   final String name;
   final String? description;
+  final List<String> permissions;
 
   factory UserRole.fromRow(Map<String, dynamic> row) {
     return UserRole(
@@ -69,10 +79,45 @@ class UserRole {
       code: row['code'].toString(),
       name: row['name'].toString(),
       description: row['description']?.toString(),
+      permissions: _codes(row['permissions']),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'code': code, 'name': name, 'description': description};
+    return {
+      'id': id,
+      'code': code,
+      'name': name,
+      'description': description,
+      'permissions': permissions,
+    };
   }
 }
+
+class PermissionDefinition {
+  const PermissionDefinition({
+    required this.code,
+    required this.name,
+    required this.description,
+  });
+
+  final String code;
+  final String name;
+  final String? description;
+
+  factory PermissionDefinition.fromRow(Map<String, dynamic> row) {
+    return PermissionDefinition(
+      code: row['code'].toString(),
+      name: row['name'].toString(),
+      description: row['description']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'code': code, 'name': name, 'description': description};
+  }
+}
+
+List<String> _codes(dynamic value) => value is List
+    ? value.map((code) => code.toString()).toList()
+    : const [];

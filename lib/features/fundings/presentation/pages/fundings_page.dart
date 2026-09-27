@@ -5,13 +5,18 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
 
+import '../../../../core/errors/app_exception.dart';
 import '../../../../shared/widgets/async_value_view.dart';
 import '../../../budget_sections/models/budget_section_item.dart';
 import '../../../budget_sections/presentation/controllers/budget_sections_controller.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
+import '../../../fiscal_years/models/fiscal_year_item.dart';
+import '../../../fiscal_years/presentation/controllers/fiscal_years_controller.dart';
 import '../../../programs/models/program_item.dart';
 import '../../../programs/presentation/controllers/programs_controller.dart';
+import '../../data/fundings_repository.dart';
 import '../../models/funding_item.dart';
+import '../../models/funding_movement_item.dart';
 import '../controllers/fundings_controller.dart';
 
 class FundingsPage extends ConsumerStatefulWidget {
@@ -37,6 +42,8 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
     final fundingsState = ref.watch(fundingsControllerProvider);
     final programsLookup = ref.watch(programLookupProvider);
     final budgetSectionsLookup = ref.watch(allBudgetSectionsLookupProvider);
+    final fiscalYearsLookup = ref.watch(fiscalYearsLookupProvider);
+    final activeFiscalYear = _activeFiscalYear(fiscalYearsLookup.asData?.value);
 
     ref.listen(fundingsControllerProvider, (previous, next) {
       if (next.hasError && next.error != null && mounted) {
@@ -80,16 +87,42 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
                   ],
                 ),
               ),
-              FilledButton.icon(
-                onPressed:
-                    programsLookup.hasValue && budgetSectionsLookup.hasValue
-                    ? () => _openCreateDialog(
-                        programsLookup.requireValue,
-                        budgetSectionsLookup.requireValue,
-                      )
-                    : null,
-                icon: const Icon(Icons.add),
-                label: const Text('إضافة تخصيص'),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: budgetSectionsLookup.hasValue
+                        ? () => _openMovementsReport(
+                            programsLookup.asData?.value ?? const [],
+                            budgetSectionsLookup.requireValue,
+                          )
+                        : null,
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    label: const Text('تقرير الحركة'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: budgetSectionsLookup.hasValue
+                        ? () => _openTransferDialog(
+                            budgetSectionsLookup.requireValue,
+                          )
+                        : null,
+                    icon: const Icon(Icons.swap_horiz_outlined),
+                    label: const Text('مناقلة'),
+                  ),
+                  FilledButton.icon(
+                    onPressed:
+                        programsLookup.hasValue && budgetSectionsLookup.hasValue
+                        ? () => _openCreateDialog(
+                            programsLookup.requireValue,
+                            budgetSectionsLookup.requireValue,
+                            activeFiscalYear: activeFiscalYear,
+                          )
+                        : null,
+                    icon: const Icon(Icons.add),
+                    label: const Text('إضافة تخصيص'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -183,18 +216,23 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
                             decimalDigits: 0,
                           ),
                           onEdit: (item) async {
-                            if (!programsLookup.hasValue ||
-                                !budgetSectionsLookup.hasValue) {
-                              return;
+                            try {
+                              if (!programsLookup.hasValue ||
+                                  !budgetSectionsLookup.hasValue) {
+                                return;
+                              }
+                              await _openEditDialog(
+                                programsLookup.requireValue,
+                                budgetSectionsLookup.requireValue,
+                                item,
+                              );
+                            } catch (error) {
+                              if (!mounted) return;
+                              _showError(_friendlyFundingError(error));
                             }
-                            await _openEditDialog(
-                              programsLookup.requireValue,
-                              budgetSectionsLookup.requireValue,
-                              item,
-                            );
                           },
                         ),
-                        columnWidthMode: ColumnWidthMode.fill,
+                        columnWidthMode: ColumnWidthMode.auto,
                         columns: [
                           GridColumn(
                             columnName: 'reference',
@@ -213,8 +251,24 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
                             label: _GridHeader('السنة'),
                           ),
                           GridColumn(
-                            columnName: 'amount',
-                            label: _GridHeader('المبلغ'),
+                            columnName: 'initial_amount',
+                            label: _GridHeader('التخصيص البدائي'),
+                          ),
+                          GridColumn(
+                            columnName: 'current_amount',
+                            label: _GridHeader('التخصيص الحالي'),
+                          ),
+                          GridColumn(
+                            columnName: 'reserved_amount',
+                            label: _GridHeader('المحجوز'),
+                          ),
+                          GridColumn(
+                            columnName: 'spent_amount',
+                            label: _GridHeader('المصروف'),
+                          ),
+                          GridColumn(
+                            columnName: 'available_amount',
+                            label: _GridHeader('المتبقي المتاح'),
                           ),
                           GridColumn(
                             columnName: 'actions',
@@ -252,17 +306,29 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
 
   Future<void> _openCreateDialog(
     List<ProgramItem> programs,
-    List<BudgetSectionItem> sections,
-  ) async {
+    List<BudgetSectionItem> sections, {
+    int? activeFiscalYear,
+  }) async {
     final payload = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) =>
-          _FundingDialog(programs: programs, sections: sections),
+      builder: (context) => _FundingDialog(
+        programs: programs,
+        sections: sections,
+        activeFiscalYear: activeFiscalYear,
+      ),
     );
 
     if (payload == null || !mounted) return;
-    await ref.read(fundingsControllerProvider.notifier).create(payload);
-    ref.invalidate(dashboardSummaryProvider);
+    try {
+      await ref.read(fundingsControllerProvider.notifier).create(payload);
+      ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(allBudgetSectionsLookupProvider);
+      if (!mounted) return;
+      _showSuccess('تمت إضافة التخصيص بنجاح.');
+    } catch (error) {
+      if (!mounted) return;
+      _showError(_friendlyFundingError(error));
+    }
   }
 
   Future<void> _openEditDialog(
@@ -280,10 +346,61 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
     );
 
     if (payload == null || !mounted) return;
-    await ref
-        .read(fundingsControllerProvider.notifier)
-        .updateFunding(item.id, payload);
-    ref.invalidate(dashboardSummaryProvider);
+    try {
+      await ref
+          .read(fundingsControllerProvider.notifier)
+          .updateFunding(item.id, payload);
+      ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(allBudgetSectionsLookupProvider);
+      if (!mounted) return;
+      _showSuccess('تم تحديث التخصيص بنجاح.');
+    } catch (error) {
+      if (!mounted) return;
+      _showError(_friendlyFundingError(error));
+    }
+  }
+
+  int? _activeFiscalYear(List<FiscalYearItem>? fiscalYears) {
+    if (fiscalYears == null) return null;
+    for (final fiscalYear in fiscalYears) {
+      if (fiscalYear.isActive) return fiscalYear.year;
+    }
+    return null;
+  }
+
+  Future<void> _openTransferDialog(List<BudgetSectionItem> sections) async {
+    final payload = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => _TransferAllocationDialog(sections: sections),
+    );
+
+    if (payload == null || !mounted) return;
+    try {
+      await ref
+          .read(fundingsControllerProvider.notifier)
+          .transferAllocation(payload);
+      ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(allBudgetSectionsLookupProvider);
+      if (!mounted) return;
+      _showSuccess('تمت المناقلة بين التخصيصات بنجاح.');
+    } catch (error) {
+      if (!mounted) return;
+      _showError(_friendlyFundingError(error));
+    }
+  }
+
+  Future<void> _openMovementsReport(
+    List<ProgramItem> programs,
+    List<BudgetSectionItem> sections,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => _FundingMovementsDialog(
+        repository: ref.read(fundingsRepositoryProvider),
+        programs: programs,
+        sections: sections,
+      ),
+    );
   }
 
   void _applyFilters() {
@@ -295,6 +412,397 @@ class _FundingsPageState extends ConsumerState<FundingsPage> {
           budgetSectionId: _selectedBudgetSectionId,
         );
   }
+
+  String _friendlyFundingError(Object error) {
+    if (error is AppException) {
+      if (error.code == 'FUNDING_REFERENCE_EXISTS') {
+        return 'مرجع التخصيص مستخدم مسبقاً. غيّر المرجع أو تأكد من السجل الصحيح.';
+      }
+      return error.message;
+    }
+    return error.toString();
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _TransferAllocationDialog extends StatefulWidget {
+  const _TransferAllocationDialog({required this.sections});
+
+  final List<BudgetSectionItem> sections;
+
+  @override
+  State<_TransferAllocationDialog> createState() =>
+      _TransferAllocationDialogState();
+}
+
+class _TransferAllocationDialogState extends State<_TransferAllocationDialog> {
+  final _formKey = GlobalKey<FormBuilderState>();
+
+  @override
+  Widget build(BuildContext context) {
+    final currency = NumberFormat.currency(
+      locale: 'ar_IQ',
+      symbol: 'د.ع',
+      decimalDigits: 0,
+    );
+    final sections = widget.sections
+        .where((section) => section.isPostable && section.isActive)
+        .toList();
+
+    return AlertDialog(
+      title: const Text('مناقلة بين التخصيصات'),
+      content: SizedBox(
+        width: 620,
+        child: FormBuilder(
+          key: _formKey,
+          initialValue: {
+            'reference': 'TR-${DateTime.now().millisecondsSinceEpoch}',
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FormBuilderDropdown<String>(
+                name: 'from_budget_section_id',
+                decoration: const InputDecoration(labelText: 'من باب'),
+                items: sections
+                    .map(
+                      (section) => DropdownMenuItem(
+                        value: section.id,
+                        child: Text(
+                          '${section.fullCode} - ${section.name} (${currency.format(section.allocatedAmount)})',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                validator: FormBuilderValidators.required(
+                  errorText: 'الحقل مطلوب',
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormBuilderDropdown<String>(
+                name: 'to_budget_section_id',
+                decoration: const InputDecoration(labelText: 'إلى باب'),
+                items: sections
+                    .map(
+                      (section) => DropdownMenuItem(
+                        value: section.id,
+                        child: Text(
+                          '${section.fullCode} - ${section.name}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                validator: FormBuilderValidators.required(
+                  errorText: 'الحقل مطلوب',
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormBuilderTextField(
+                name: 'amount',
+                decoration: const InputDecoration(labelText: 'مبلغ المناقلة'),
+                validator: FormBuilderValidators.compose([
+                  FormBuilderValidators.required(errorText: 'الحقل مطلوب'),
+                  FormBuilderValidators.numeric(errorText: 'أدخل رقماً صحيحاً'),
+                ]),
+              ),
+              const SizedBox(height: 12),
+              FormBuilderTextField(
+                name: 'reference',
+                decoration: const InputDecoration(labelText: 'مرجع المناقلة'),
+                validator: FormBuilderValidators.required(
+                  errorText: 'الحقل مطلوب',
+                ),
+              ),
+              const SizedBox(height: 12),
+              FormBuilderTextField(
+                name: 'notes',
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'ملاحظات'),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('إلغاء'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('تنفيذ المناقلة')),
+      ],
+    );
+  }
+
+  void _submit() {
+    final formState = _formKey.currentState;
+    if (formState == null || !formState.saveAndValidate()) return;
+    final values = formState.value;
+    if (values['from_budget_section_id'] == values['to_budget_section_id']) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يمكن المناقلة لنفس الباب.')),
+      );
+      return;
+    }
+
+    Navigator.of(context).pop({
+      'from_budget_section_id': values['from_budget_section_id']?.toString(),
+      'to_budget_section_id': values['to_budget_section_id']?.toString(),
+      'amount': double.parse(values['amount'].toString()),
+      'reference': values['reference']?.toString().trim(),
+      'notes': values['notes']?.toString().trim(),
+    });
+  }
+}
+
+class _FundingMovementsDialog extends StatefulWidget {
+  const _FundingMovementsDialog({
+    required this.repository,
+    required this.programs,
+    required this.sections,
+  });
+
+  final FundingsRepository repository;
+  final List<ProgramItem> programs;
+  final List<BudgetSectionItem> sections;
+
+  @override
+  State<_FundingMovementsDialog> createState() =>
+      _FundingMovementsDialogState();
+}
+
+class _FundingMovementsDialogState extends State<_FundingMovementsDialog> {
+  String? _programId;
+  String? _sectionId;
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  late Future<List<FundingMovementItem>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<FundingMovementItem>> _load() {
+    return widget.repository.fetchMovements(
+      programId: _programId,
+      budgetSectionId: _sectionId,
+      fromDate: _fromDate == null
+          ? null
+          : DateFormat('yyyy-MM-dd').format(_fromDate!),
+      toDate: _toDate == null
+          ? null
+          : DateFormat('yyyy-MM-dd').format(_toDate!),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currency = NumberFormat.currency(
+      locale: 'ar_IQ',
+      symbol: 'د.ع',
+      decimalDigits: 0,
+    );
+    final filteredSections = widget.sections
+        .where(
+          (section) =>
+              _programId == null ? true : section.programId == _programId,
+        )
+        .toList();
+
+    return AlertDialog(
+      title: const Text('تقرير حركة التخصيصات'),
+      content: SizedBox(
+        width: 980,
+        height: 620,
+        child: Column(
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  width: 220,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _programId,
+                    decoration: const InputDecoration(labelText: 'البرنامج'),
+                    items: [
+                      const DropdownMenuItem(value: '', child: Text('الكل')),
+                      ...widget.programs.map(
+                        (program) => DropdownMenuItem(
+                          value: program.id,
+                          child: Text(program.name),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) => setState(() {
+                      _programId = value == '' ? null : value;
+                      _sectionId = null;
+                      _future = _load();
+                    }),
+                  ),
+                ),
+                SizedBox(
+                  width: 260,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _sectionId,
+                    decoration: const InputDecoration(labelText: 'الباب'),
+                    items: [
+                      const DropdownMenuItem(value: '', child: Text('الكل')),
+                      ...filteredSections.map(
+                        (section) => DropdownMenuItem(
+                          value: section.id,
+                          child: Text('${section.fullCode} - ${section.name}'),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) => setState(() {
+                      _sectionId = value == '' ? null : value;
+                      _future = _load();
+                    }),
+                  ),
+                ),
+                _DateFilterButton(
+                  label: _fromDate == null
+                      ? 'من تاريخ'
+                      : DateFormat('yyyy-MM-dd').format(_fromDate!),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                      initialDate: _fromDate ?? DateTime.now(),
+                    );
+                    if (picked == null) return;
+                    setState(() {
+                      _fromDate = picked;
+                      _future = _load();
+                    });
+                  },
+                ),
+                _DateFilterButton(
+                  label: _toDate == null
+                      ? 'إلى تاريخ'
+                      : DateFormat('yyyy-MM-dd').format(_toDate!),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                      initialDate: _toDate ?? DateTime.now(),
+                    );
+                    if (picked == null) return;
+                    setState(() {
+                      _toDate = picked;
+                      _future = _load();
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: FutureBuilder<List<FundingMovementItem>>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text(snapshot.error.toString()));
+                  }
+                  final items = snapshot.data ?? const [];
+                  if (items.isEmpty) {
+                    return const Center(
+                      child: Text('لا توجد حركات تخصيص ضمن الفلاتر الحالية.'),
+                    );
+                  }
+                  return ListView.separated(
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final isDecrease =
+                          item.transactionType == 'adjustment_decrease' ||
+                          item.transactionType == 'allocation_reversal';
+                      return ListTile(
+                        leading: Icon(
+                          isDecrease
+                              ? Icons.trending_down_outlined
+                              : Icons.trending_up_outlined,
+                          color: isDecrease
+                              ? Theme.of(context).colorScheme.error
+                              : const Color(0xFF1A7F5A),
+                        ),
+                        title: Text(
+                          '${item.typeLabel} - ${currency.format(item.amount)}',
+                        ),
+                        subtitle: Text(
+                          [
+                                item.programName,
+                                '${item.budgetSectionCode ?? '-'} - ${item.budgetSectionName ?? '-'}',
+                                item.description,
+                                item.createdByName == null
+                                    ? null
+                                    : 'بواسطة: ${item.createdByName}',
+                              ]
+                              .whereType<String>()
+                              .where((e) => e.isNotEmpty)
+                              .join('\n'),
+                        ),
+                        trailing: Text(
+                          item.transactionDate.split('.').first,
+                          textAlign: TextAlign.left,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('إغلاق'),
+        ),
+      ],
+    );
+  }
+}
+
+class _DateFilterButton extends StatelessWidget {
+  const _DateFilterButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.date_range_outlined),
+      label: Text(label),
+    );
+  }
 }
 
 class _FundingDialog extends StatefulWidget {
@@ -302,11 +810,13 @@ class _FundingDialog extends StatefulWidget {
     required this.programs,
     required this.sections,
     this.initialValue,
+    this.activeFiscalYear,
   });
 
   final List<ProgramItem> programs;
   final List<BudgetSectionItem> sections;
   final FundingItem? initialValue;
+  final int? activeFiscalYear;
 
   @override
   State<_FundingDialog> createState() => _FundingDialogState();
@@ -342,7 +852,8 @@ class _FundingDialogState extends State<_FundingDialog> {
             'program_id': item?.programId,
             'budget_section_id': item?.budgetSectionId,
             'funding_reference': item?.fundingReference,
-            'fiscal_year': item?.fiscalYear.toString(),
+            'fiscal_year': (item?.fiscalYear ?? widget.activeFiscalYear)
+                ?.toString(),
             'allocated_amount': item?.allocatedAmount.toStringAsFixed(0),
             'notes': item?.notes,
           },
@@ -377,10 +888,11 @@ class _FundingDialogState extends State<_FundingDialog> {
                 name: 'budget_section_id',
                 decoration: const InputDecoration(labelText: 'الباب'),
                 items: availableSections
+                    .where((section) => section.isPostable && section.isActive)
                     .map(
                       (section) => DropdownMenuItem<String>(
                         value: section.id,
-                        child: Text('${section.code} - ${section.name}'),
+                        child: Text('${section.fullCode} - ${section.name}'),
                       ),
                     )
                     .toList(),
@@ -399,7 +911,10 @@ class _FundingDialogState extends State<_FundingDialog> {
               const SizedBox(height: 12),
               FormBuilderTextField(
                 name: 'fiscal_year',
-                decoration: const InputDecoration(labelText: 'السنة المالية'),
+                decoration: const InputDecoration(
+                  labelText: 'السنة المالية',
+                  helperText: 'تُملأ تلقائياً من السنة المالية الفعالة',
+                ),
                 validator: FormBuilderValidators.compose([
                   FormBuilderValidators.required(errorText: 'الحقل مطلوب'),
                   FormBuilderValidators.integer(errorText: 'أدخل رقماً صحيحاً'),
@@ -469,7 +984,23 @@ class _FundingsDataSource extends DataGridSource {
             DataGridCell<FundingItem>(columnName: 'program', value: item),
             DataGridCell<FundingItem>(columnName: 'section', value: item),
             DataGridCell<FundingItem>(columnName: 'year', value: item),
-            DataGridCell<FundingItem>(columnName: 'amount', value: item),
+            DataGridCell<FundingItem>(
+              columnName: 'initial_amount',
+              value: item,
+            ),
+            DataGridCell<FundingItem>(
+              columnName: 'current_amount',
+              value: item,
+            ),
+            DataGridCell<FundingItem>(
+              columnName: 'reserved_amount',
+              value: item,
+            ),
+            DataGridCell<FundingItem>(columnName: 'spent_amount', value: item),
+            DataGridCell<FundingItem>(
+              columnName: 'available_amount',
+              value: item,
+            ),
             DataGridCell<FundingItem>(columnName: 'actions', value: item),
           ],
         ),
@@ -486,6 +1017,10 @@ class _FundingsDataSource extends DataGridSource {
         _GridCell('${item.budgetSectionCode} - ${item.budgetSectionName}'),
         _GridCell(item.fiscalYear.toString()),
         _GridCell(formatter.format(item.allocatedAmount)),
+        _GridCell(formatter.format(item.currentAllocatedAmount)),
+        _GridCell(formatter.format(item.reservedAmount)),
+        _GridCell(formatter.format(item.spentAmount)),
+        _GridCell(formatter.format(item.availableAmount)),
         Padding(
           padding: const EdgeInsets.all(8),
           child: IconButton(

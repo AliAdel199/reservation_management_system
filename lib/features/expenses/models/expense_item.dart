@@ -3,8 +3,17 @@ class ExpenseItem {
     required this.id,
     required this.reservationId,
     required this.reservationNumber,
+    required this.reservationTitle,
+    required this.reservationBeneficiary,
+    required this.requesterDepartment,
+    required this.contactPhone,
+    required this.reservationDescription,
+    required this.reservationExecutionNote,
     required this.programName,
+    required this.budgetSectionCode,
+    required this.budgetSectionFullCode,
     required this.budgetSectionName,
+    required this.fundingReference,
     required this.expenseNumber,
     required this.amount,
     required this.expenseStatus,
@@ -21,8 +30,17 @@ class ExpenseItem {
   final String id;
   final String reservationId;
   final String reservationNumber;
+  final String? reservationTitle;
+  final String? reservationBeneficiary;
+  final String? requesterDepartment;
+  final String? contactPhone;
+  final String? reservationDescription;
+  final String? reservationExecutionNote;
   final String programName;
+  final String? budgetSectionCode;
+  final String? budgetSectionFullCode;
   final String budgetSectionName;
+  final String? fundingReference;
   final String expenseNumber;
   final double amount;
   final String expenseStatus;
@@ -44,8 +62,17 @@ class ExpenseItem {
       id: json['id'] as String,
       reservationId: json['reservation_id'] as String,
       reservationNumber: json['reservation_number'] as String,
+      reservationTitle: json['reservation_title']?.toString(),
+      reservationBeneficiary: json['reservation_beneficiary']?.toString(),
+      requesterDepartment: json['requester_department']?.toString(),
+      contactPhone: json['contact_phone']?.toString(),
+      reservationDescription: json['reservation_description']?.toString(),
+      reservationExecutionNote: json['reservation_execution_note']?.toString(),
       programName: json['program_name'] as String,
+      budgetSectionCode: json['budget_section_code']?.toString(),
+      budgetSectionFullCode: json['budget_section_full_code']?.toString(),
       budgetSectionName: json['budget_section_name'] as String,
+      fundingReference: json['funding_reference']?.toString(),
       expenseNumber: json['expense_number'] as String,
       amount: parseDouble(json['amount']),
       expenseStatus: json['expense_status'] as String,

@@ -80,6 +80,14 @@ class FundingsController {
         );
       }
 
+      await _fundingsRepository.applyFundingAllocationChange(
+        session: session,
+        oldBudgetSectionId: null,
+        oldAmount: 0,
+        newBudgetSectionId: payload.budgetSectionId,
+        newAmount: payload.allocatedAmount,
+      );
+
       final funding = await _fundingsRepository.create(
         session: session,
         programId: payload.programId,
@@ -157,6 +165,14 @@ class FundingsController {
         );
       }
 
+      await _fundingsRepository.applyFundingAllocationChange(
+        session: session,
+        oldBudgetSectionId: current.budgetSectionId,
+        oldAmount: current.allocatedAmount,
+        newBudgetSectionId: payload.budgetSectionId,
+        newAmount: payload.allocatedAmount,
+      );
+
       final funding = await _fundingsRepository.update(
         session: session,
         id: id,
@@ -168,31 +184,58 @@ class FundingsController {
         notes: payload.notes,
       );
 
-      final difference = funding.allocatedAmount - current.allocatedAmount;
-      if (difference > 0) {
+      final movedToDifferentSection =
+          current.budgetSectionId != funding.budgetSectionId;
+      if (movedToDifferentSection) {
         await _fundingsRepository.createLedgerTransaction(
           session: session,
-          fundingId: funding.id,
-          programId: funding.programId,
-          budgetSectionId: funding.budgetSectionId,
+          fundingId: current.id,
+          programId: current.programId,
+          budgetSectionId: current.budgetSectionId,
           createdBy: user.id,
-          amount: difference,
-          transactionType: 'adjustment_increase',
-          description:
-              'Allocation increase for funding ${funding.fundingReference}.',
-        );
-      } else if (difference < 0) {
-        await _fundingsRepository.createLedgerTransaction(
-          session: session,
-          fundingId: funding.id,
-          programId: funding.programId,
-          budgetSectionId: funding.budgetSectionId,
-          createdBy: user.id,
-          amount: difference.abs(),
+          amount: current.allocatedAmount,
           transactionType: 'adjustment_decrease',
           description:
-              'Allocation decrease for funding ${funding.fundingReference}.',
+              'Allocation moved out from funding ${current.fundingReference}.',
         );
+        await _fundingsRepository.createLedgerTransaction(
+          session: session,
+          fundingId: funding.id,
+          programId: funding.programId,
+          budgetSectionId: funding.budgetSectionId,
+          createdBy: user.id,
+          amount: funding.allocatedAmount,
+          transactionType: 'adjustment_increase',
+          description:
+              'Allocation moved in for funding ${funding.fundingReference}.',
+        );
+      } else {
+        final difference = funding.allocatedAmount - current.allocatedAmount;
+        if (difference > 0) {
+          await _fundingsRepository.createLedgerTransaction(
+            session: session,
+            fundingId: funding.id,
+            programId: funding.programId,
+            budgetSectionId: funding.budgetSectionId,
+            createdBy: user.id,
+            amount: difference,
+            transactionType: 'adjustment_increase',
+            description:
+                'Allocation increase for funding ${funding.fundingReference}.',
+          );
+        } else if (difference < 0) {
+          await _fundingsRepository.createLedgerTransaction(
+            session: session,
+            fundingId: funding.id,
+            programId: funding.programId,
+            budgetSectionId: funding.budgetSectionId,
+            createdBy: user.id,
+            amount: difference.abs(),
+            transactionType: 'adjustment_decrease',
+            description:
+                'Allocation decrease for funding ${funding.fundingReference}.',
+          );
+        }
       }
 
       await _auditService.log(
@@ -213,6 +256,86 @@ class FundingsController {
       200,
       message: 'Funding updated successfully.',
       data: updated.toJson(),
+    );
+  }
+
+  Future<Response> transfer(Request request) async {
+    final body = await HttpService.parseJsonBody(request);
+    final user = _requestUser(request);
+    final fromSectionId =
+        body['from_budget_section_id']?.toString().trim() ?? '';
+    final toSectionId = body['to_budget_section_id']?.toString().trim() ?? '';
+    final amount = double.tryParse(body['amount']?.toString() ?? '');
+    final reference = body['reference']?.toString().trim() ?? '';
+    final notes = body['notes']?.toString().trim();
+
+    if (fromSectionId.isEmpty ||
+        toSectionId.isEmpty ||
+        amount == null ||
+        reference.isEmpty) {
+      throw const AppException(
+        message: 'باب المصدر وباب الهدف والمبلغ ورقم/مرجع المناقلة مطلوبة.',
+        statusCode: 422,
+        code: 'TRANSFER_VALIDATION_ERROR',
+      );
+    }
+
+    await _database.runTx((session) async {
+      await _fundingsRepository.transferAllocation(
+        session: session,
+        fromSectionId: fromSectionId,
+        toSectionId: toSectionId,
+        amount: amount,
+        reference: reference,
+        notes: notes?.isEmpty == true ? null : notes,
+        createdBy: user.id,
+      );
+
+      await _auditService.log(
+        session: session,
+        actor: user,
+        action: 'ALLOCATION_TRANSFER_CREATED',
+        entityName: 'financial_transactions',
+        description: 'Allocation transferred between budget sections.',
+        newValues: {
+          'from_budget_section_id': fromSectionId,
+          'to_budget_section_id': toSectionId,
+          'amount': amount,
+          'reference': reference,
+          'notes': notes,
+        },
+      );
+    });
+
+    return jsonResponse(
+      201,
+      message: 'Allocation transfer completed successfully.',
+    );
+  }
+
+  Future<Response> movements(Request request) async {
+    final programId = request.url.queryParameters['program_id'];
+    final budgetSectionId = request.url.queryParameters['budget_section_id'];
+    final fromDate = request.url.queryParameters['from_date'];
+    final toDate = request.url.queryParameters['to_date'];
+    final limit =
+        int.tryParse(request.url.queryParameters['limit'] ?? '200') ?? 200;
+
+    final items = await _fundingsRepository.allocationMovements(
+      _database.connection,
+      programId: programId?.isEmpty == true ? null : programId,
+      budgetSectionId: budgetSectionId?.isEmpty == true
+          ? null
+          : budgetSectionId,
+      fromDate: fromDate?.isEmpty == true ? null : fromDate,
+      toDate: toDate?.isEmpty == true ? null : toDate,
+      limit: limit.clamp(20, 1000).toInt(),
+    );
+
+    return jsonResponse(
+      200,
+      message: 'Allocation movements retrieved successfully.',
+      data: {'items': items},
     );
   }
 

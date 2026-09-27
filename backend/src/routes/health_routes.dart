@@ -5,4 +5,5 @@ import '../controllers/health_controller.dart';
 void registerHealthRoutes(Router router, HealthController controller) {
   router.get('/', controller.status);
   router.get('/health', controller.status);
+  router.get('/about', controller.about);
 }

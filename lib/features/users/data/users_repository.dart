@@ -63,6 +63,30 @@ class UsersRepository {
     }
   }
 
+  Future<List<PermissionItem>> fetchPermissions() async {
+    try {
+      final response = await _apiClient.instance.get<Map<String, dynamic>>(
+        '/users/permissions',
+      );
+      final payload = response.data?['data'];
+      if (payload is! Map<String, dynamic>) {
+        throw const AppException(
+          message: 'تعذر قراءة قائمة الصلاحيات.',
+          code: 'INVALID_PERMISSIONS_RESPONSE',
+        );
+      }
+      final items = payload['items'] as List<dynamic>? ?? const [];
+      return items
+          .whereType<Map>()
+          .map(
+            (item) => PermissionItem.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .toList();
+    } on DioException catch (exception) {
+      throw AppException.fromDioException(exception);
+    }
+  }
+
   Future<void> createUser(Map<String, dynamic> payload) async {
     try {
       await _apiClient.instance.post('/users', data: payload);

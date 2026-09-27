@@ -52,3 +52,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Runtime/customer data — never commit (secrets, financial backups, uploaded documents)
+**/.env
+!**/.env.example
+!**/.env.customer.example
+deploy/api/backups/
+deploy/api/attachments/
+backend/backups/
+backend/attachments/
+deploy/logs/
+deploy/sql/*.exe

@@ -10,6 +10,10 @@ class Funding {
     required this.fundingReference,
     required this.fiscalYear,
     required this.allocatedAmount,
+    required this.currentAllocatedAmount,
+    required this.reservedAmount,
+    required this.spentAmount,
+    required this.availableAmount,
     required this.notes,
     required this.createdAt,
   });
@@ -24,6 +28,10 @@ class Funding {
   final String fundingReference;
   final int fiscalYear;
   final double allocatedAmount;
+  final double currentAllocatedAmount;
+  final double reservedAmount;
+  final double spentAmount;
+  final double availableAmount;
   final String? notes;
   final String createdAt;
 
@@ -45,6 +53,12 @@ class Funding {
       fundingReference: row['funding_reference'].toString(),
       fiscalYear: parseInt(row['fiscal_year']),
       allocatedAmount: parseDouble(row['allocated_amount']),
+      currentAllocatedAmount: parseDouble(
+        row['current_allocated_amount'] ?? row['allocated_amount'],
+      ),
+      reservedAmount: parseDouble(row['reserved_amount']),
+      spentAmount: parseDouble(row['spent_amount']),
+      availableAmount: parseDouble(row['available_amount']),
       notes: row['notes']?.toString(),
       createdAt: row['created_at'].toString(),
     );
@@ -62,6 +76,10 @@ class Funding {
       'funding_reference': fundingReference,
       'fiscal_year': fiscalYear,
       'allocated_amount': allocatedAmount,
+      'current_allocated_amount': currentAllocatedAmount,
+      'reserved_amount': reservedAmount,
+      'spent_amount': spentAmount,
+      'available_amount': availableAmount,
       'notes': notes,
       'created_at': createdAt,
     };

@@ -91,6 +91,13 @@ class AppSidebar extends StatelessWidget {
                   selected: currentLocation == '/budget-sections',
                   onTap: () => context.go('/budget-sections'),
                 ),
+                const SizedBox(height: 12),
+                _NavItem(
+                  title: 'التخصيصات',
+                  icon: Icons.account_balance_wallet_outlined,
+                  selected: currentLocation == '/fundings',
+                  onTap: () => context.go('/fundings'),
+                ),
                 // تعليق عربي: التمويل الشهري معلّق حالياً لأن الدورة المعتمدة
                 // تعتمد على التخصيص السنوي للأبواب وليس تمويلاً شهرياً منفصلاً.
                 const SizedBox(height: 12),

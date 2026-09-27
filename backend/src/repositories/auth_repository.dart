@@ -4,6 +4,25 @@ import 'package:uuid/uuid.dart';
 import '../models/app_exception.dart';
 import '../models/app_user.dart';
 
+// تعليق عربي: الصلاحيات الفعلية لصف المستخدم ذي الاسم المستعار u: صلاحياته المخصصة إن فُعّلت،
+// وإلا صلاحيات دوره. تُستخدم عند تسجيل الدخول وفي شاشة إدارة المستخدمين.
+const effectivePermissionCodesSql = '''
+  ARRAY(
+    SELECT p.code
+    FROM permissions p
+    WHERE CASE
+      WHEN u.custom_permissions THEN EXISTS (
+        SELECT 1 FROM user_permissions up
+        WHERE up.user_id = u.id AND up.permission_id = p.id
+      )
+      ELSE EXISTS (
+        SELECT 1 FROM role_permissions rp
+        WHERE rp.role_id = u.role_id AND rp.permission_id = p.id
+      )
+    END
+    ORDER BY p.code
+  )''';
+
 class AuthRepository {
   const AuthRepository();
 
@@ -38,7 +57,7 @@ class AuthRepository {
     final row = result.first.toColumnMap();
     final permissions = await findPermissionCodes(
       session,
-      row['role_id'].toString(),
+      row['id'].toString(),
     );
 
     return AppUser.fromRow(row, permissions: permissions);
@@ -72,7 +91,7 @@ class AuthRepository {
     final row = result.first.toColumnMap();
     final permissions = await findPermissionCodes(
       session,
-      row['role_id'].toString(),
+      row['id'].toString(),
     );
 
     return AppUser.fromRow(row, permissions: permissions);
@@ -80,20 +99,19 @@ class AuthRepository {
 
   Future<List<String>> findPermissionCodes(
     Session session,
-    String roleId,
+    String userId,
   ) async {
     final result = await session.execute(
       Sql.named('''
-        SELECT p.code
-        FROM role_permissions rp
-        INNER JOIN permissions p ON p.id = rp.permission_id
-        WHERE rp.role_id = @role_id::uuid
-        ORDER BY p.code ASC
+        SELECT $effectivePermissionCodesSql
+        FROM users u
+        WHERE u.id = @user_id::uuid
       '''),
-      parameters: {'role_id': roleId},
+      parameters: {'user_id': userId},
     );
+    if (result.isEmpty) return const [];
 
-    return result.map((row) => row[0].toString()).toList();
+    return (result.first[0] as List).map((code) => code.toString()).toList();
   }
 
   Future<String> findRoleIdByCode(Session session, String roleCode) async {

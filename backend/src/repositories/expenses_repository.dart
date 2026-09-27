@@ -59,8 +59,17 @@ class ExpensesRepository {
           e.id,
           e.reservation_id,
           r.reservation_number,
+          r.title AS reservation_title,
+          r.beneficiary AS reservation_beneficiary,
+          r.requester_department,
+          r.contact_phone,
+          r.description AS reservation_description,
+          r.execution_note AS reservation_execution_note,
           p.name AS program_name,
+          bs.code AS budget_section_code,
+          COALESCE(NULLIF(bs.full_code, ''), bs.code) AS budget_section_full_code,
           bs.name AS budget_section_name,
+          f.funding_reference,
           e.expense_number,
           e.amount,
           e.expense_status::text AS expense_status,
@@ -76,6 +85,7 @@ class ExpensesRepository {
         INNER JOIN reservations r ON r.id = e.reservation_id
         INNER JOIN programs p ON p.id = r.program_id
         INNER JOIN budget_sections bs ON bs.id = r.budget_section_id
+        LEFT JOIN fundings f ON f.id = r.funding_id
         WHERE e.deleted_at IS NULL
           AND (@reservation_id = '' OR e.reservation_id = @reservation_id::uuid)
           AND (@program_id = '' OR r.program_id = @program_id::uuid)
@@ -120,8 +130,17 @@ class ExpensesRepository {
           e.id,
           e.reservation_id,
           r.reservation_number,
+          r.title AS reservation_title,
+          r.beneficiary AS reservation_beneficiary,
+          r.requester_department,
+          r.contact_phone,
+          r.description AS reservation_description,
+          r.execution_note AS reservation_execution_note,
           p.name AS program_name,
+          bs.code AS budget_section_code,
+          COALESCE(NULLIF(bs.full_code, ''), bs.code) AS budget_section_full_code,
           bs.name AS budget_section_name,
+          f.funding_reference,
           e.expense_number,
           e.amount,
           e.expense_status::text AS expense_status,
@@ -137,6 +156,7 @@ class ExpensesRepository {
         INNER JOIN reservations r ON r.id = e.reservation_id
         INNER JOIN programs p ON p.id = r.program_id
         INNER JOIN budget_sections bs ON bs.id = r.budget_section_id
+        LEFT JOIN fundings f ON f.id = r.funding_id
         WHERE e.id = @id::uuid
         LIMIT 1
       '''),
@@ -147,10 +167,39 @@ class ExpensesRepository {
     return Expense.fromRow(result.first.toColumnMap());
   }
 
+  Future<bool> expenseNumberExists(
+    Session session,
+    String expenseNumber,
+  ) async {
+    final result = await session.execute(
+      Sql.named('''
+        SELECT 1
+        FROM expenses
+        WHERE deleted_at IS NULL
+          AND LOWER(expense_number) = LOWER(@expense_number)
+        LIMIT 1
+      '''),
+      parameters: {'expense_number': expenseNumber},
+    );
+
+    return result.isNotEmpty;
+  }
+
   Future<Map<String, dynamic>?> findReservationForExpense(
     Session session,
     String reservationId,
   ) async {
+    // تعليق عربي: نقفل صف الحجز حتى نهاية المعاملة، فلا يُحسب المتبقي لعمليتي صرف متزامنتين
+    // على نفس الرصيد. الاستعلام التالي يُنفَّذ بعد القفل فيرى آخر صرف تم اعتماده.
+    await session.execute(
+      Sql.named('''
+        SELECT id FROM reservations
+        WHERE id = @reservation_id::uuid AND deleted_at IS NULL
+        FOR UPDATE
+      '''),
+      parameters: {'reservation_id': reservationId},
+    );
+
     final result = await session.execute(
       Sql.named('''
         SELECT

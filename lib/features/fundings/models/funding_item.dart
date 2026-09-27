@@ -10,6 +10,10 @@ class FundingItem {
     required this.fundingReference,
     required this.fiscalYear,
     required this.allocatedAmount,
+    required this.currentAllocatedAmount,
+    required this.reservedAmount,
+    required this.spentAmount,
+    required this.availableAmount,
     required this.notes,
     required this.createdAt,
   });
@@ -24,6 +28,10 @@ class FundingItem {
   final String fundingReference;
   final int fiscalYear;
   final double allocatedAmount;
+  final double currentAllocatedAmount;
+  final double reservedAmount;
+  final double spentAmount;
+  final double availableAmount;
   final String? notes;
   final String createdAt;
 
@@ -45,6 +53,12 @@ class FundingItem {
       fundingReference: json['funding_reference'] as String,
       fiscalYear: parseInt(json['fiscal_year']),
       allocatedAmount: parseDouble(json['allocated_amount']),
+      currentAllocatedAmount: parseDouble(
+        json['current_allocated_amount'] ?? json['allocated_amount'],
+      ),
+      reservedAmount: parseDouble(json['reserved_amount']),
+      spentAmount: parseDouble(json['spent_amount']),
+      availableAmount: parseDouble(json['available_amount']),
       notes: json['notes']?.toString(),
       createdAt: json['created_at']?.toString() ?? '',
     );

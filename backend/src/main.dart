@@ -48,10 +48,10 @@ import 'services/database_backup_service.dart';
 import 'services/document_storage_service.dart';
 import 'services/jwt_service.dart';
 import 'services/password_service.dart';
-import 'middlewares/database_keep_alive_middleware.dart';
 import 'middlewares/error_middleware.dart';
 import 'middlewares/license_middleware.dart';
 import 'middlewares/security_headers_middleware.dart';
+import 'middlewares/session_user_middleware.dart';
 import 'services/license_service.dart';
 
 Future<void> startServer() async {
@@ -61,6 +61,29 @@ Future<void> startServer() async {
 
   await database.connect();
 
+  final handler = await buildServerHandler(
+    config: config,
+    database: database,
+    logger: logger,
+  );
+
+  final server = await shelf_io.serve(handler, config.host, config.port);
+  logger.info('Server started at http://${server.address.host}:${server.port}');
+
+  ProcessSignal.sigint.watch().listen((_) async {
+    logger.info('Shutdown signal received.');
+    await server.close(force: true);
+    await database.close();
+    exit(0);
+  });
+}
+
+// تعليق عربي: بناء خط معالجة الطلبات منفصلاً عن فتح المنفذ، حتى تستخدمه اختبارات التكامل مباشرة.
+Future<Handler> buildServerHandler({
+  required AppConfig config,
+  required DatabaseService database,
+  required Logger logger,
+}) async {
   final authRepository = AuthRepository();
   final institutionRepository = InstitutionRepository();
   final usersRepository = UsersRepository();
@@ -93,7 +116,7 @@ Future<void> startServer() async {
   );
   await seeder.seedFoundation();
 
-  final handler = Pipeline()
+  return Pipeline()
       .addMiddleware(
         logRequests(
           logger: (message, isError) {
@@ -108,9 +131,15 @@ Future<void> startServer() async {
       )
       .addMiddleware(corsHeaders())
       .addMiddleware(errorMiddleware(logger))
-      .addMiddleware(databaseKeepAliveMiddleware(database, logger))
       .addMiddleware(licenseMiddleware(licenseService))
       .addMiddleware(securityHeadersMiddleware())
+      .addMiddleware(
+        sessionUserMiddleware(
+          jwtService: jwtService,
+          database: database,
+          authRepository: authRepository,
+        ),
+      )
       .addHandler(
         buildAppRouter(
           healthController: HealthController(database: database),
@@ -205,14 +234,4 @@ Future<void> startServer() async {
           jwtService: jwtService,
         ),
       );
-
-  final server = await shelf_io.serve(handler, config.host, config.port);
-  logger.info('Server started at http://${server.address.host}:${server.port}');
-
-  ProcessSignal.sigint.watch().listen((_) async {
-    logger.info('Shutdown signal received.');
-    await server.close(force: true);
-    await database.close();
-    exit(0);
-  });
 }

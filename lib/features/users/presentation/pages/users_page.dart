@@ -118,7 +118,13 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                                     DataCell(Text(user.username)),
                                     DataCell(Text(user.fullName)),
                                     DataCell(Text(user.email)),
-                                    DataCell(Text(user.roleName)),
+                                    DataCell(
+                                      Text(
+                                        user.customPermissions
+                                            ? '${user.roleName} (صلاحيات مخصصة)'
+                                            : user.roleName,
+                                      ),
+                                    ),
                                     DataCell(
                                       Text(user.isActive ? 'فعال' : 'معطل'),
                                     ),
@@ -237,67 +243,89 @@ class _UserDialog extends ConsumerStatefulWidget {
 class _UserDialogState extends ConsumerState<_UserDialog> {
   final _formKey = GlobalKey<FormBuilderState>();
 
+  String? _roleId;
+  late bool _customPermissions;
+  Set<String> _selectedPermissions = {};
+
+  @override
+  void initState() {
+    super.initState();
+    final user = widget.user;
+    _roleId = user?.roleId;
+    _customPermissions = user?.customPermissions ?? false;
+    _selectedPermissions = {...?user?.permissions};
+  }
+
   @override
   Widget build(BuildContext context) {
     final roles = ref.watch(userRolesProvider);
+    final catalog = ref.watch(permissionCatalogProvider);
     final user = widget.user;
 
     return AlertDialog(
       title: Text(user == null ? 'إضافة مستخدم' : 'تعديل مستخدم'),
       content: SizedBox(
-        width: 520,
+        width: 680,
         child: roles.when(
-          data: (items) => FormBuilder(
-            key: _formKey,
-            initialValue: {
-              'username': user?.username,
-              'full_name': user?.fullName,
-              'email': user?.email,
-              'role_id': user?.roleId,
-              'is_active': user?.isActive ?? true,
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _TextField(name: 'username', label: 'اسم المستخدم'),
-                const SizedBox(height: 12),
-                _TextField(name: 'full_name', label: 'الاسم الكامل'),
-                const SizedBox(height: 12),
-                _TextField(name: 'email', label: 'البريد الإلكتروني'),
-                const SizedBox(height: 12),
-                if (user == null) ...[
-                  FormBuilderTextField(
-                    name: 'password',
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'كلمة المرور'),
-                    validator: FormBuilderValidators.minLength(
-                      8,
-                      errorText: '8 أحرف على الأقل',
+          data: (items) => SingleChildScrollView(
+            child: FormBuilder(
+              key: _formKey,
+              initialValue: {
+                'username': user?.username,
+                'full_name': user?.fullName,
+                'email': user?.email,
+                'role_id': user?.roleId,
+                'is_active': user?.isActive ?? true,
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _TextField(name: 'username', label: 'اسم المستخدم'),
+                  const SizedBox(height: 12),
+                  _TextField(name: 'full_name', label: 'الاسم الكامل'),
+                  const SizedBox(height: 12),
+                  _TextField(name: 'email', label: 'البريد الإلكتروني'),
+                  const SizedBox(height: 12),
+                  if (user == null) ...[
+                    FormBuilderTextField(
+                      name: 'password',
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'كلمة المرور',
+                      ),
+                      validator: FormBuilderValidators.minLength(
+                        8,
+                        errorText: '8 أحرف على الأقل',
+                      ),
                     ),
+                    const SizedBox(height: 12),
+                  ],
+                  FormBuilderDropdown<String>(
+                    name: 'role_id',
+                    decoration: const InputDecoration(labelText: 'الدور'),
+                    validator: FormBuilderValidators.required(
+                      errorText: 'الحقل مطلوب',
+                    ),
+                    onChanged: (value) => setState(() => _roleId = value),
+                    items: items
+                        .map(
+                          (role) => DropdownMenuItem(
+                            value: role.id,
+                            child: Text(role.name),
+                          ),
+                        )
+                        .toList(),
                   ),
                   const SizedBox(height: 12),
-                ],
-                FormBuilderDropdown<String>(
-                  name: 'role_id',
-                  decoration: const InputDecoration(labelText: 'الدور'),
-                  validator: FormBuilderValidators.required(
-                    errorText: 'الحقل مطلوب',
+                  FormBuilderSwitch(
+                    name: 'is_active',
+                    title: const Text('حساب فعال'),
                   ),
-                  items: items
-                      .map(
-                        (role) => DropdownMenuItem(
-                          value: role.id,
-                          child: Text(role.name),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 12),
-                FormBuilderSwitch(
-                  name: 'is_active',
-                  title: const Text('حساب فعال'),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  _buildPermissionsSection(context, items, catalog),
+                ],
+              ),
             ),
           ),
           loading: () => const SizedBox(
@@ -317,12 +345,160 @@ class _UserDialogState extends ConsumerState<_UserDialog> {
     );
   }
 
+  UserRoleItem? _selectedRole(List<UserRoleItem> roles) {
+    for (final role in roles) {
+      if (role.id == _roleId) return role;
+    }
+    return null;
+  }
+
+  Widget _buildPermissionsSection(
+    BuildContext context,
+    List<UserRoleItem> roles,
+    AsyncValue<List<PermissionItem>> catalog,
+  ) {
+    final theme = Theme.of(context);
+    final role = _selectedRole(roles);
+
+    if (role == null) {
+      return Text(
+        'اختر الدور أولاً لعرض الصلاحيات.',
+        style: theme.textTheme.bodySmall,
+      );
+    }
+    if (role.isSuperAdmin) {
+      return Text(
+        'مدير النظام يملك جميع الصلاحيات تلقائياً.',
+        style: theme.textTheme.bodySmall,
+      );
+    }
+
+    // تعليق عربي: بدون تخصيص تُعرض صلاحيات الدور للاطلاع فقط.
+    final effective = _customPermissions
+        ? _selectedPermissions
+        : role.permissions.toSet();
+    final canCreateAndApprove =
+        effective.contains('reservations.add') &&
+        effective.contains('reservations.approve');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('الصلاحيات', style: theme.textTheme.titleMedium),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('تخصيص صلاحيات هذا المستخدم'),
+          subtitle: Text(
+            _customPermissions
+                ? 'الصلاحيات المحددة أدناه تحل محل صلاحيات الدور.'
+                : 'يستخدم صلاحيات الدور "${role.name}".',
+          ),
+          value: _customPermissions,
+          onChanged: (value) => setState(() {
+            _customPermissions = value;
+            if (value) _selectedPermissions = role.permissions.toSet();
+          }),
+        ),
+        if (canCreateAndApprove)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'تنبيه: هذا المستخدم يستطيع إنشاء الحجز واعتماده بنفسه.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          ),
+        catalog.when(
+          data: (permissions) =>
+              _buildPermissionGroups(context, permissions, effective),
+          loading: () => const LinearProgressIndicator(),
+          error: (error, _) => Text(error.toString()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPermissionGroups(
+    BuildContext context,
+    List<PermissionItem> permissions,
+    Set<String> effective,
+  ) {
+    final groups = <String, List<PermissionItem>>{};
+    for (final permission in permissions) {
+      groups.putIfAbsent(permission.module, () => []).add(permission);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final entry in groups.entries) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 2),
+            child: Text(
+              _moduleLabels[entry.key] ?? entry.key,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          Wrap(
+            spacing: 4,
+            children: [
+              for (final permission in entry.value)
+                SizedBox(
+                  width: 205,
+                  child: CheckboxListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: Text(permission.name),
+                    value: effective.contains(permission.code),
+                    onChanged: _customPermissions
+                        ? (checked) => setState(() {
+                            if (checked == true) {
+                              _selectedPermissions.add(permission.code);
+                            } else {
+                              _selectedPermissions.remove(permission.code);
+                            }
+                          })
+                        : null,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   void _submit() {
     final form = _formKey.currentState;
     if (form == null || !form.saveAndValidate()) return;
-    Navigator.of(context).pop(Map<String, dynamic>.from(form.value));
+    Navigator.of(context).pop({
+      ...form.value,
+      'custom_permissions': _customPermissions,
+      if (_customPermissions) 'permissions': _selectedPermissions.toList(),
+    });
   }
 }
+
+const _moduleLabels = {
+  'dashboard': 'لوحة التحكم',
+  'alerts': 'التنبيهات',
+  'programs': 'البرامج',
+  'fiscal_years': 'السنوات المالية',
+  'budget_types': 'أنواع الموازنة',
+  'budget_sections': 'الأبواب',
+  'fundings': 'التخصيصات',
+  'reservations': 'الحجوزات',
+  'expenses': 'الصرف',
+  'reports': 'التقارير',
+  'institution': 'معلومات المؤسسة',
+  'users': 'المستخدمون',
+  'audit_logs': 'سجل الإجراءات',
+  'data_exchange': 'تبادل البيانات',
+  'backups': 'النسخ الاحتياطي',
+  'api_settings': 'إعدادات الاتصال',
+};
 
 class _PasswordDialog extends StatefulWidget {
   const _PasswordDialog();

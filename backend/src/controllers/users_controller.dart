@@ -62,9 +62,19 @@ class UsersController {
     );
   }
 
+  Future<Response> permissions(Request request) async {
+    final items = await _usersRepository.permissions(_database.connection);
+    return jsonResponse(
+      200,
+      message: 'Permissions retrieved successfully.',
+      data: {'items': items.map((item) => item.toJson()).toList()},
+    );
+  }
+
   Future<Response> create(Request request) async {
     final body = await HttpService.parseJsonBody(request);
     final requestUser = _requestUser(request);
+    final permissionsPayload = _permissionsPayload(body);
     final username = body['username']?.toString().trim() ?? '';
     final fullName = body['full_name']?.toString().trim() ?? '';
     final email = body['email']?.toString().trim() ?? '';
@@ -86,7 +96,7 @@ class UsersController {
         username: username,
         email: email,
       );
-      final user = await _usersRepository.create(
+      var user = await _usersRepository.create(
         session: session,
         username: username,
         fullName: fullName,
@@ -94,6 +104,16 @@ class UsersController {
         passwordHash: _passwordService.hashPassword(password),
         roleId: roleId,
       );
+
+      if (permissionsPayload != null) {
+        await _usersRepository.setPermissions(
+          session: session,
+          userId: user.id,
+          custom: permissionsPayload.custom,
+          codes: permissionsPayload.codes,
+        );
+        user = (await _usersRepository.findById(session, user.id))!;
+      }
 
       await _auditService.log(
         session: session,
@@ -118,6 +138,7 @@ class UsersController {
   Future<Response> update(Request request, String id) async {
     final body = await HttpService.parseJsonBody(request);
     final requestUser = _requestUser(request);
+    final permissionsPayload = _permissionsPayload(body);
     final username = body['username']?.toString().trim() ?? '';
     final fullName = body['full_name']?.toString().trim() ?? '';
     final email = body['email']?.toString().trim() ?? '';
@@ -148,7 +169,7 @@ class UsersController {
         email: email,
         ignoreId: id,
       );
-      final user = await _usersRepository.update(
+      var user = await _usersRepository.update(
         session: session,
         id: id,
         username: username,
@@ -157,6 +178,16 @@ class UsersController {
         roleId: roleId,
         isActive: isActive,
       );
+
+      if (permissionsPayload != null) {
+        await _usersRepository.setPermissions(
+          session: session,
+          userId: user.id,
+          custom: permissionsPayload.custom,
+          codes: permissionsPayload.codes,
+        );
+        user = (await _usersRepository.findById(session, user.id))!;
+      }
 
       await _auditService.log(
         session: session,
@@ -295,6 +326,23 @@ class UsersController {
         code: 'WEAK_PASSWORD',
       );
     }
+  }
+
+  // تعليق عربي: غياب custom_permissions في الطلب يعني عدم تغيير الصلاحيات (توافق مع العملاء القدامى).
+  ({bool custom, List<String> codes})? _permissionsPayload(
+    Map<String, dynamic> body,
+  ) {
+    if (!body.containsKey('custom_permissions')) return null;
+    final rawCodes = body['permissions'];
+    return (
+      custom: body['custom_permissions'] == true,
+      codes: rawCodes is List
+          ? rawCodes
+                .map((code) => code.toString().trim())
+                .where((code) => code.isNotEmpty)
+                .toList()
+          : const <String>[],
+    );
   }
 
   RequestUser _requestUser(Request request) {

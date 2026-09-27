@@ -41,6 +41,19 @@ class HealthController {
     );
   }
 
+  Response about(Request request) {
+    return jsonResponse(
+      200,
+      message: 'Application information.',
+      data: const {
+        'app_name': 'Reservation Management System',
+        'product_name': 'Government Financial Reservation Management System',
+        'developer': 'Ali Adel (DuraTec)',
+        'copyright': '© 2026 Ali Adel (DuraTec). All rights reserved.',
+      },
+    );
+  }
+
   Future<Map<String, dynamic>> _serverDetails() async {
     final addresses = <String>[];
     try {

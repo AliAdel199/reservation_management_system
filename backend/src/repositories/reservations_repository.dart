@@ -276,6 +276,15 @@ class ReservationsRepository {
     );
   }
 
+  // تعليق عربي: يقفل صف الحجز حتى نهاية المعاملة لمنع تغيير حالته أو رصيده بالتزامن
+  // (مثل اعتماد مزدوج يُنشئ حركة حجز مرتين).
+  Future<void> lockById(Session session, String id) async {
+    await session.execute(
+      Sql.named('SELECT id FROM reservations WHERE id = @id::uuid FOR UPDATE'),
+      parameters: {'id': id},
+    );
+  }
+
   Future<Reservation?> findById(Session session, String id) async {
     final result = await session.execute(
       Sql.named('''

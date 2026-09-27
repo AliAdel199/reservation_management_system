@@ -1,6 +1,6 @@
 -- Reservation Management System - Customer Database Setup
 -- Generated from project migrations and seeds. Run once on customer PostgreSQL database.
--- آخر تحديث: يشمل جميع تعديلات قاعدة البيانات حتى migration رقم 017.
+-- آخر تحديث: يشمل جميع تعديلات قاعدة البيانات حتى migration رقم 019.
 -- ملاحظة عربية: التمويل الشهري معلّق حالياً، والتخصيص المعتمد هو التخصيص السنوي للأبواب.
 -- مصادر الملف:
 -- 001_initial_schema.sql
@@ -19,6 +19,8 @@
 -- 015_fine_grained_permissions.sql
 -- 016_document_attachments.sql
 -- 017_deduplicate_roles.sql
+-- 018_immutable_audit_logs.sql
+-- 019_user_permissions.sql
 -- 001_reference_data.sql
 -- 002_financial_foundation_data.sql
 
@@ -589,7 +591,9 @@ ALTER TABLE audit_logs
 UPDATE audit_logs
 SET
   user_id = COALESCE(user_id, created_by),
-  entity_type = COALESCE(entity_type, entity_name);
+  entity_type = COALESCE(entity_type, entity_name)
+WHERE (user_id IS NULL AND created_by IS NOT NULL)
+   OR (entity_type IS NULL AND entity_name IS NOT NULL);
 
 CREATE INDEX IF NOT EXISTS idx_programs_fiscal_year_id
   ON programs(fiscal_year_id)
@@ -928,7 +932,9 @@ ALTER TABLE audit_logs
 UPDATE audit_logs
 SET
   user_id = COALESCE(user_id, created_by),
-  entity_type = COALESCE(entity_type, entity_name);
+  entity_type = COALESCE(entity_type, entity_name)
+WHERE (user_id IS NULL AND created_by IS NOT NULL)
+   OR (entity_type IS NULL AND entity_name IS NOT NULL);
 
 
 -- ============================================================
@@ -1650,6 +1656,59 @@ WHERE rp.role_id = r.id
 
 DELETE FROM roles
 WHERE code IN ('super_admin', 'financial_manager', 'financial_auditor', 'data_entry');
+
+
+-- ============================================================
+-- Source: database/migrations/018_immutable_audit_logs.sql
+-- ============================================================
+
+-- تعليق عربي: سجل التدقيق في نظام مالي حكومي يجب أن يكون للإضافة فقط.
+-- هذا الـ trigger يمنع تعديل أو حذف أي صف من audit_logs حتى من داخل التطبيق أو من اتصال SQL مباشر.
+-- ملاحظة: TRUNCATE لا يمر عبر triggers الصفوف؛ سكربت الصيانة clear_business_data.sql ما زال يستطيع
+-- تصفير السجل عند تنفيذه عمداً بصلاحيات مالك القاعدة.
+
+-- تعليق عربي: نكمل الأعمدة التوافقية للصفوف القديمة قبل القفل، حتى لا تحتاج تعديلاً لاحقاً.
+UPDATE audit_logs
+SET
+  user_id = COALESCE(user_id, created_by),
+  entity_type = COALESCE(entity_type, entity_name)
+WHERE (user_id IS NULL AND created_by IS NOT NULL)
+   OR (entity_type IS NULL AND entity_name IS NOT NULL);
+
+CREATE OR REPLACE FUNCTION prevent_audit_log_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'audit_logs is append-only: % is not allowed', TG_OP
+    USING ERRCODE = 'insufficient_privilege';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_audit_logs_immutable ON audit_logs;
+CREATE TRIGGER trg_audit_logs_immutable
+BEFORE UPDATE OR DELETE ON audit_logs
+FOR EACH ROW
+EXECUTE FUNCTION prevent_audit_log_mutation();
+
+
+-- ============================================================
+-- Source: database/migrations/019_user_permissions.sql
+-- ============================================================
+
+-- تعليق عربي: صلاحيات مخصصة لكل مستخدم لتطبيق فصل المهام (مثلاً: مُدخل الحجز غير المعتمِد).
+-- الدور يبقى قالباً افتراضياً؛ عند تفعيل custom_permissions تحل صلاحيات المستخدم محل صلاحيات دوره.
+
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS custom_permissions BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS user_permissions (
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (user_id, permission_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id
+  ON user_permissions(user_id);
 
 
 COMMIT;

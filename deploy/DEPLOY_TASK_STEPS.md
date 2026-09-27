@@ -25,6 +25,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "D:\reservation_management_s
 D:\reservation_management_system\deploy
 ```
 
+تأكد أن الملف التالي موجود ضمن التسليم:
+
+```text
+D:\reservation_management_system\deploy\NOTICE.md
+```
+
 5. انسخ مجلد `deploy` كاملاً إلى جهاز الزبون داخل:
 
 ```text

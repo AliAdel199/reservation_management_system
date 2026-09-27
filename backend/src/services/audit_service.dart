@@ -28,6 +28,8 @@ class AuditService {
           new_values,
           description,
           created_by,
+          user_id,
+          entity_type,
           ip_address,
           user_agent
         )
@@ -39,6 +41,8 @@ class AuditService {
           @new_values::jsonb,
           @description,
           NULLIF(@created_by, '')::uuid,
+          NULLIF(@created_by, '')::uuid,
+          @entity_name,
           @ip_address,
           @user_agent
         )

@@ -25,6 +25,22 @@ void registerFundingsRoutes(
       permission: PermissionCodes.fundingsAdd,
     ),
   );
+  router.post(
+    '/api/fundings/transfers',
+    protectedRoute(
+      jwtService,
+      controller.transfer,
+      permission: PermissionCodes.fundingsEdit,
+    ),
+  );
+  router.get(
+    '/api/fundings/movements',
+    protectedRoute(
+      jwtService,
+      controller.movements,
+      permission: PermissionCodes.fundingsView,
+    ),
+  );
   router.put(
     '/api/fundings/<id>',
     (request) => protectedRoute(

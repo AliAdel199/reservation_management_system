@@ -4,7 +4,7 @@ import '../services/api_response.dart';
 import '../services/license_service.dart';
 
 Middleware licenseMiddleware(LicenseService licenseService) {
-  const allowedPaths = {'/', '/health', '/license/status'};
+  const allowedPaths = {'/', '/health', '/about', '/license/status'};
 
   return (innerHandler) {
     return (request) async {

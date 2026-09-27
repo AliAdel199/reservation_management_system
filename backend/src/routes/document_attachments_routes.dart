@@ -14,7 +14,6 @@ void registerDocumentAttachmentsRoutes(
     protectedRoute(
       jwtService,
       controller.list,
-      permission: PermissionCodes.viewRecords,
     ),
   );
   router.post(
@@ -22,7 +21,6 @@ void registerDocumentAttachmentsRoutes(
     protectedRoute(
       jwtService,
       controller.create,
-      permission: PermissionCodes.modifyRecords,
     ),
   );
   router.get(
@@ -30,7 +28,6 @@ void registerDocumentAttachmentsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.download(request, request.params['id']!),
-      permission: PermissionCodes.viewRecords,
     )(request),
   );
   router.delete(
@@ -38,7 +35,6 @@ void registerDocumentAttachmentsRoutes(
     (request) => protectedRoute(
       jwtService,
       (request) => controller.delete(request, request.params['id']!),
-      permission: PermissionCodes.modifyRecords,
     )(request),
   );
 }

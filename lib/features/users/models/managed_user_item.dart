@@ -9,6 +9,8 @@ class ManagedUserItem {
     required this.roleName,
     required this.isActive,
     required this.createdAt,
+    this.customPermissions = false,
+    this.permissions = const [],
   });
 
   final String id;
@@ -20,6 +22,8 @@ class ManagedUserItem {
   final String roleName;
   final bool isActive;
   final String createdAt;
+  final bool customPermissions;
+  final List<String> permissions;
 
   factory ManagedUserItem.fromJson(Map<String, dynamic> json) {
     return ManagedUserItem(
@@ -32,6 +36,8 @@ class ManagedUserItem {
       roleName: json['role_name']?.toString() ?? '',
       isActive: json['is_active'] as bool? ?? false,
       createdAt: json['created_at']?.toString() ?? '',
+      customPermissions: json['custom_permissions'] as bool? ?? false,
+      permissions: _codes(json['permissions']),
     );
   }
 }
@@ -42,12 +48,16 @@ class UserRoleItem {
     required this.code,
     required this.name,
     required this.description,
+    this.permissions = const [],
   });
 
   final String id;
   final String code;
   final String name;
   final String? description;
+  final List<String> permissions;
+
+  bool get isSuperAdmin => code.toUpperCase() == 'SUPER_ADMIN';
 
   factory UserRoleItem.fromJson(Map<String, dynamic> json) {
     return UserRoleItem(
@@ -55,6 +65,28 @@ class UserRoleItem {
       code: json['code']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString(),
+      permissions: _codes(json['permissions']),
     );
   }
 }
+
+class PermissionItem {
+  const PermissionItem({required this.code, required this.name});
+
+  final String code;
+  final String name;
+
+  /// القسم الذي تتبع له الصلاحية، مثل reservations من reservations.approve.
+  String get module => code.split('.').first;
+
+  factory PermissionItem.fromJson(Map<String, dynamic> json) {
+    return PermissionItem(
+      code: json['code']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+    );
+  }
+}
+
+List<String> _codes(dynamic value) => value is List
+    ? value.map((code) => code.toString()).toList()
+    : const [];

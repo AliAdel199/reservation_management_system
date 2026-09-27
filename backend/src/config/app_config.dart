@@ -12,6 +12,7 @@ class AppConfig {
     required this.defaultAdminPassword,
     required this.defaultAdminFullName,
     required this.defaultAdminEmail,
+    required this.resetDefaultAdminPassword,
     required this.licenseEnforcementEnabled,
     required this.licenseFilePath,
     required this.licensePublicKeyPath,
@@ -32,6 +33,7 @@ class AppConfig {
   final String defaultAdminPassword;
   final String defaultAdminFullName;
   final String defaultAdminEmail;
+  final bool resetDefaultAdminPassword;
   final bool licenseEnforcementEnabled;
   final String licenseFilePath;
   final String licensePublicKeyPath;
@@ -51,13 +53,16 @@ class AppConfig {
       databaseUrl:
           env['DATABASE_URL'] ??
           'postgresql://postgres:postgres@localhost:5432/reservation_management?sslmode=disable',
-      jwtSecret: env['JWT_SECRET'] ?? 'change-this-secret-before-production',
+      jwtSecret: _requireJwtSecret(env['JWT_SECRET']),
       jwtExpiresInHours: int.tryParse(env['JWT_EXPIRES_IN_HOURS'] ?? '8') ?? 8,
       defaultAdminUsername: env['DEFAULT_ADMIN_USERNAME'] ?? 'admin',
       defaultAdminPassword: env['DEFAULT_ADMIN_PASSWORD'] ?? 'Admin@123',
       defaultAdminFullName:
           env['DEFAULT_ADMIN_FULL_NAME'] ?? 'System Administrator',
       defaultAdminEmail: env['DEFAULT_ADMIN_EMAIL'] ?? 'admin@finance.local',
+      // تعليق عربي: استرجاع كلمة مرور المدير من .env يتم فقط عند طلبه صراحة (مرة واحدة ثم يُعاد إلى false).
+      resetDefaultAdminPassword:
+          (env['RESET_ADMIN_PASSWORD'] ?? 'false').toLowerCase() == 'true',
       licenseEnforcementEnabled:
           const bool.fromEnvironment('LICENSE_REQUIRED') ||
           (env['LICENSE_ENFORCEMENT'] ?? 'false').toLowerCase() == 'true',
@@ -70,5 +75,20 @@ class AppConfig {
       backupRetentionDays:
           int.tryParse(env['BACKUP_RETENTION_DAYS'] ?? '30') ?? 30,
     );
+  }
+
+  // تعليق عربي: لا نسمح بتشغيل الخادم بمفتاح توقيع افتراضي أو قصير لأنه يتيح تزوير التوكنات.
+  static String _requireJwtSecret(String? value) {
+    final secret = value?.trim() ?? '';
+    const placeholders = {
+      'change-this-secret-before-production',
+      'CHANGE_ME_LONG_RANDOM_SECRET',
+    };
+    if (secret.length < 32 || placeholders.contains(secret)) {
+      throw StateError(
+        'JWT_SECRET must be set in .env to a random value of at least 32 characters.',
+      );
+    }
+    return secret;
   }
 }

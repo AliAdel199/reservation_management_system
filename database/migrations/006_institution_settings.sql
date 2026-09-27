@@ -53,4 +53,6 @@ ALTER TABLE audit_logs
 UPDATE audit_logs
 SET
   user_id = COALESCE(user_id, created_by),
-  entity_type = COALESCE(entity_type, entity_name);
+  entity_type = COALESCE(entity_type, entity_name)
+WHERE (user_id IS NULL AND created_by IS NOT NULL)
+   OR (entity_type IS NULL AND entity_name IS NOT NULL);

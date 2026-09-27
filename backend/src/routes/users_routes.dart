@@ -18,6 +18,14 @@ void registerUsersRoutes(
     ),
   );
   router.get(
+    '/api/users/permissions',
+    protectedRoute(
+      jwtService,
+      controller.permissions,
+      permission: PermissionCodes.usersView,
+    ),
+  );
+  router.get(
     '/api/users/roles',
     protectedRoute(
       jwtService,

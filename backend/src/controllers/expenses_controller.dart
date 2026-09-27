@@ -77,7 +77,9 @@ class ExpensesController {
       final reservedAmount = _toDouble(reservation['reserved_amount']);
       final spentAmount = _toDouble(reservation['spent_amount']);
       final remainingAmount = reservedAmount - spentAmount;
-      if (payload.amount > remainingAmount) {
+      // تعليق عربي: المقارنة بالفلس (أعداد صحيحة) لتفادي أخطاء التقريب في double،
+      // فمثلاً صرف كامل المتبقي لا يُرفض بسبب فرق 0.0000001.
+      if (_toFils(payload.amount) > _toFils(remainingAmount)) {
         throw AppException(
           message:
               'Expense amount is greater than reservation remaining amount.',
@@ -88,6 +90,16 @@ class ExpensesController {
             'spent_amount': spentAmount,
             'remaining_amount': remainingAmount,
           },
+        );
+      }
+
+      final duplicateExpenseNumber = await _expensesRepository
+          .expenseNumberExists(session, payload.expenseNumber);
+      if (duplicateExpenseNumber) {
+        throw const AppException(
+          message: 'رقم الصرف موجود مسبقاً.',
+          statusCode: 409,
+          code: 'EXPENSE_NUMBER_EXISTS',
         );
       }
 
@@ -182,14 +194,22 @@ class ExpensesController {
     }
 
     final cancelled = await _database.runTx((session) async {
-      final current = await _expensesRepository.findById(session, id);
-      if (current == null) {
+      final existing = await _expensesRepository.findById(session, id);
+      if (existing == null) {
         throw const AppException(
           message: 'Expense not found.',
           statusCode: 404,
           code: 'EXPENSE_NOT_FOUND',
         );
       }
+
+      // تعليق عربي: هذا الاستعلام يقفل الحجز، ثم نعيد قراءة المستند بعد القفل حتى لا يُلغى
+      // نفس المستند مرتين بالتزامن فتُعكس قيمته في الحركات المالية مرتين.
+      final reservation = await _expensesRepository.findReservationForExpense(
+        session,
+        existing.reservationId,
+      );
+      final current = (await _expensesRepository.findById(session, id))!;
       if (current.expenseStatus == 'cancelled') {
         throw const AppException(
           message: 'Expense is already cancelled.',
@@ -198,10 +218,6 @@ class ExpensesController {
         );
       }
 
-      final reservation = await _expensesRepository.findReservationForExpense(
-        session,
-        current.reservationId,
-      );
       if (reservation == null) {
         throw const AppException(
           message: 'Reservation not found.',
@@ -322,6 +338,14 @@ class ExpensesController {
         code: 'INVALID_EXPENSE_AMOUNT',
       );
     }
+    // تعليق عربي: القاعدة تخزن NUMERIC(18,2)؛ نرفض الكسور الأدق بدل أن تُقرَّب بصمت عند الحفظ.
+    if ((amount * 100 - _toFils(amount)).abs() > 1e-6) {
+      throw const AppException(
+        message: 'Expense amount must have at most two decimal places.',
+        statusCode: 422,
+        code: 'INVALID_EXPENSE_AMOUNT',
+      );
+    }
 
     return _ExpensePayload(
       reservationId: reservationId,
@@ -353,6 +377,8 @@ class ExpensesController {
   double _toDouble(dynamic value) => value is num
       ? value.toDouble()
       : double.tryParse(value?.toString() ?? '0') ?? 0;
+
+  int _toFils(double value) => (value * 100).round();
 }
 
 class _ExpensePayload {

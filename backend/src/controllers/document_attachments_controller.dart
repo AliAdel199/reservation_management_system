@@ -1,6 +1,7 @@
 import 'package:shelf/shelf.dart';
 
 import '../database/database_service.dart';
+import '../middlewares/permission_middleware.dart';
 import '../middlewares/request_context_keys.dart';
 import '../models/app_exception.dart';
 import '../models/request_user.dart';
@@ -30,6 +31,7 @@ class DocumentAttachmentsController {
     final entityType = _normalizeEntityType(
       request.url.queryParameters['entity_type'],
     );
+    _ensureCanView(_requestUser(request), entityType);
     final entityId = request.url.queryParameters['entity_id']?.trim() ?? '';
     if (entityId.isEmpty) {
       throw const AppException(
@@ -56,6 +58,7 @@ class DocumentAttachmentsController {
     final user = _requestUser(request);
     final body = await HttpService.parseJsonBody(request);
     final entityType = _normalizeEntityType(body['entity_type']?.toString());
+    _ensureCanModify(user, entityType);
     final entityId = body['entity_id']?.toString().trim() ?? '';
     final originalFileName = body['file_name']?.toString().trim() ?? '';
     final contentType = body['content_type']?.toString().trim() ?? '';
@@ -138,6 +141,7 @@ class DocumentAttachmentsController {
         code: 'ATTACHMENT_NOT_FOUND',
       );
     }
+    _ensureCanView(_requestUser(request), attachment.entityType);
 
     final bytes = await _storageService.read(attachment);
     return Response.ok(
@@ -161,6 +165,7 @@ class DocumentAttachmentsController {
           code: 'ATTACHMENT_NOT_FOUND',
         );
       }
+      _ensureCanModify(user, attachment.entityType);
 
       await _repository.softDelete(
         session: session,
@@ -185,6 +190,34 @@ class DocumentAttachmentsController {
       message: 'Document attachment deleted successfully.',
       data: deleted.toJson(),
     );
+  }
+
+  // تعليق عربي: صلاحية المرفق تتبع صلاحية المستند نفسه (حجز أو صرف)، مطابقةً لما تعرضه الواجهة.
+  void _ensureCanView(RequestUser user, String entityType) {
+    final permission = entityType == 'expense'
+        ? PermissionCodes.expensesView
+        : PermissionCodes.reservationsView;
+    if (!user.hasPermission(permission)) {
+      throw const AppException(
+        message: 'You do not have permission to view these attachments.',
+        statusCode: 403,
+        code: 'FORBIDDEN',
+      );
+    }
+  }
+
+  void _ensureCanModify(RequestUser user, String entityType) {
+    final allowed = entityType == 'expense'
+        ? user.hasPermission(PermissionCodes.expensesAdd)
+        : user.hasPermission(PermissionCodes.reservationsAdd) ||
+              user.hasPermission(PermissionCodes.reservationsEdit);
+    if (!allowed) {
+      throw const AppException(
+        message: 'You do not have permission to modify these attachments.',
+        statusCode: 403,
+        code: 'FORBIDDEN',
+      );
+    }
   }
 
   String _normalizeEntityType(String? value) {

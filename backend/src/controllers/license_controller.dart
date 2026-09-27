@@ -10,7 +10,8 @@ class LicenseController {
   final LicenseService _licenseService;
 
   Future<Response> status(Request request) async {
-    final status = await _licenseService.checkStatus();
+    // تعليق عربي: صفحة حالة الترخيص تفحص الملف مباشرة، فيظهر أثر تركيب ترخيص جديد فوراً.
+    final status = await _licenseService.checkStatus(refresh: true);
 
     return jsonResponse(
       status.valid ? 200 : 403,

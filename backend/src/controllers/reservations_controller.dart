@@ -146,6 +146,7 @@ class ReservationsController {
     final payload = _validateBody(body);
 
     final updated = await _database.runTx((session) async {
+      await _reservationsRepository.lockById(session, id);
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
@@ -234,6 +235,7 @@ class ReservationsController {
   Future<Response> submitForReview(Request request, String id) async {
     final user = _requestUser(request);
     final updated = await _database.runTx((session) async {
+      await _reservationsRepository.lockById(session, id);
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
@@ -282,6 +284,7 @@ class ReservationsController {
   Future<Response> approve(Request request, String id) async {
     final user = _requestUser(request);
     final updated = await _database.runTx((session) async {
+      await _reservationsRepository.lockById(session, id);
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
@@ -346,6 +349,7 @@ class ReservationsController {
   Future<Response> cancel(Request request, String id) async {
     final user = _requestUser(request);
     final updated = await _database.runTx((session) async {
+      await _reservationsRepository.lockById(session, id);
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(
@@ -425,6 +429,7 @@ class ReservationsController {
   Future<Response> delete(Request request, String id) async {
     final user = _requestUser(request);
     await _database.runTx((session) async {
+      await _reservationsRepository.lockById(session, id);
       final current = await _reservationsRepository.findById(session, id);
       if (current == null) {
         throw const AppException(

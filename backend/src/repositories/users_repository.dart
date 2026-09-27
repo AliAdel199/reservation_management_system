@@ -1,6 +1,7 @@
 import 'package:postgres/postgres.dart';
 import 'package:uuid/uuid.dart';
 
+import 'auth_repository.dart';
 import '../models/app_exception.dart';
 import '../models/managed_user.dart';
 import '../models/paged_result.dart';
@@ -55,7 +56,9 @@ class UsersRepository {
           r.code AS role_code,
           r.name AS role_name,
           u.is_active,
-          u.created_at
+          u.created_at,
+          u.custom_permissions,
+          $effectivePermissionCodesSql AS permissions
         FROM users u
         JOIN roles r ON r.id = u.role_id
         WHERE
@@ -92,7 +95,18 @@ class UsersRepository {
 
   Future<List<UserRole>> roles(Session session) async {
     final result = await session.execute('''
-      SELECT id, code, name, description
+      SELECT
+        roles.id,
+        roles.code,
+        roles.name,
+        roles.description,
+        ARRAY(
+          SELECT p.code
+          FROM role_permissions rp
+          JOIN permissions p ON p.id = rp.permission_id
+          WHERE rp.role_id = roles.id
+          ORDER BY p.code
+        ) AS permissions
       FROM roles
       WHERE code IN (
         'SUPER_ADMIN',
@@ -107,6 +121,66 @@ class UsersRepository {
     return result.map((row) => UserRole.fromRow(row.toColumnMap())).toList();
   }
 
+  Future<List<PermissionDefinition>> permissions(Session session) async {
+    final result = await session.execute('''
+      SELECT code, name, description
+      FROM permissions
+      WHERE code LIKE '%.%'
+      ORDER BY code
+    ''');
+    return result
+        .map((row) => PermissionDefinition.fromRow(row.toColumnMap()))
+        .toList();
+  }
+
+  // تعليق عربي: custom=false يعيد المستخدم لصلاحيات دوره؛ custom=true يستبدل صلاحياته بالقائمة المرسلة.
+  Future<void> setPermissions({
+    required Session session,
+    required String userId,
+    required bool custom,
+    required List<String> codes,
+  }) async {
+    final uniqueCodes = codes.toSet().toList();
+    if (custom && uniqueCodes.isNotEmpty) {
+      final known = await session.execute(
+        Sql.named('SELECT COUNT(*) FROM permissions WHERE code = ANY(@codes)'),
+        parameters: {'codes': TypedValue(Type.textArray, uniqueCodes)},
+      );
+      if (int.parse(known.first[0].toString()) != uniqueCodes.length) {
+        throw const AppException(
+          message: 'One or more permission codes are invalid.',
+          statusCode: 422,
+          code: 'INVALID_PERMISSION_CODE',
+        );
+      }
+    }
+
+    await session.execute(
+      Sql.named('''
+        UPDATE users
+        SET custom_permissions = @custom, updated_at = NOW()
+        WHERE id = @id::uuid
+      '''),
+      parameters: {'id': userId, 'custom': custom},
+    );
+    await session.execute(
+      Sql.named('DELETE FROM user_permissions WHERE user_id = @id::uuid'),
+      parameters: {'id': userId},
+    );
+    if (custom && uniqueCodes.isNotEmpty) {
+      await session.execute(
+        Sql.named('''
+          INSERT INTO user_permissions (user_id, permission_id)
+          SELECT @id::uuid, id FROM permissions WHERE code = ANY(@codes)
+        '''),
+        parameters: {
+          'id': userId,
+          'codes': TypedValue(Type.textArray, uniqueCodes),
+        },
+      );
+    }
+  }
+
   Future<ManagedUser?> findById(Session session, String id) async {
     final result = await session.execute(
       Sql.named('''
@@ -119,7 +193,9 @@ class UsersRepository {
           r.code AS role_code,
           r.name AS role_name,
           u.is_active,
-          u.created_at
+          u.created_at,
+          u.custom_permissions,
+          $effectivePermissionCodesSql AS permissions
         FROM users u
         JOIN roles r ON r.id = u.role_id
         WHERE u.id = @id::uuid

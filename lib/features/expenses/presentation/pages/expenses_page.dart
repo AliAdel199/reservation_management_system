@@ -12,10 +12,13 @@ import '../../../../shared/widgets/async_value_view.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../dashboard/presentation/providers/dashboard_providers.dart';
 import '../../../document_attachments/presentation/document_attachments_dialog.dart';
+import '../../../institution/models/institution_settings_item.dart';
+import '../../../institution/presentation/controllers/institution_controller.dart';
 import '../../../reports/presentation/controllers/reports_controller.dart';
 import '../../../reservations/models/reservation_item.dart';
 import '../../../reservations/presentation/controllers/reservations_controller.dart';
 import '../../models/expense_item.dart';
+import '../../services/expense_document_print_service.dart';
 import '../controllers/expenses_controller.dart';
 
 class ExpensesPage extends ConsumerStatefulWidget {
@@ -34,6 +37,7 @@ class ExpensesPage extends ConsumerStatefulWidget {
 
 class _ExpensesPageState extends ConsumerState<ExpensesPage> {
   final _searchController = TextEditingController();
+  final _documentPrintService = const ExpenseDocumentPrintService();
   Timer? _searchDebounce;
   String? _reservationId;
   DateTime? _dateFrom;
@@ -62,6 +66,7 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
   @override
   Widget build(BuildContext context) {
     final expensesState = ref.watch(expensesControllerProvider);
+    final institutionSettings = ref.watch(institutionControllerProvider);
     final reservations = ref.watch(spendableReservationsProvider);
     final currentUser = ref.watch(authControllerProvider).asData?.value?.user;
     final canAdd = currentUser?.canAddExpenses ?? false;
@@ -269,6 +274,16 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
                             onCancel: canCancel ? _cancelExpense : null,
                             onAttachments: (item) =>
                                 _openAttachments(item, canAdd),
+                            onPrintPaymentVoucher: (item) =>
+                                _printPaymentVoucher(
+                                  item,
+                                  institutionSettings.asData?.value,
+                                ),
+                            onPrintJournalVoucher: (item) =>
+                                _printJournalVoucher(
+                                  item,
+                                  institutionSettings.asData?.value,
+                                ),
                           ),
                           columnWidthMode: ColumnWidthMode.fill,
                           columns: [
@@ -345,12 +360,16 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
     );
     if (payload == null || !mounted) return;
 
-    await ref.read(expensesControllerProvider.notifier).create(payload);
-    ref.invalidate(reservationsControllerProvider);
-    ref.invalidate(dashboardSummaryProvider);
-    ref.invalidate(dashboardSummaryByFiscalYearProvider);
-    ref.invalidate(sectionSummaryProvider);
-    _showMessage('تم تسجيل الصرف وتحديث الحجز.');
+    try {
+      await ref.read(expensesControllerProvider.notifier).create(payload);
+      ref.invalidate(reservationsControllerProvider);
+      ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(dashboardSummaryByFiscalYearProvider);
+      ref.invalidate(sectionSummaryProvider);
+      _showMessage('تم تسجيل الصرف وتحديث الحجز.');
+    } catch (error) {
+      _showMessage(error.toString());
+    }
   }
 
   Future<void> _cancelExpense(ExpenseItem item) async {
@@ -360,14 +379,18 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
     );
     if (reason == null || reason.trim().isEmpty || !mounted) return;
 
-    await ref
-        .read(expensesControllerProvider.notifier)
-        .cancel(item.id, reason.trim());
-    ref.invalidate(reservationsControllerProvider);
-    ref.invalidate(dashboardSummaryProvider);
-    ref.invalidate(dashboardSummaryByFiscalYearProvider);
-    ref.invalidate(sectionSummaryProvider);
-    _showMessage('تم إلغاء الصرف وعكس الحركة في السجل المالي.');
+    try {
+      await ref
+          .read(expensesControllerProvider.notifier)
+          .cancel(item.id, reason.trim());
+      ref.invalidate(reservationsControllerProvider);
+      ref.invalidate(dashboardSummaryProvider);
+      ref.invalidate(dashboardSummaryByFiscalYearProvider);
+      ref.invalidate(sectionSummaryProvider);
+      _showMessage('تم إلغاء الصرف وعكس الحركة في السجل المالي.');
+    } catch (error) {
+      _showMessage(error.toString());
+    }
   }
 
   Future<void> _openAttachments(ExpenseItem item, bool canModify) async {
@@ -380,6 +403,36 @@ class _ExpensesPageState extends ConsumerState<ExpensesPage> {
         canModify: canModify,
       ),
     );
+  }
+
+  Future<void> _printPaymentVoucher(
+    ExpenseItem item,
+    InstitutionSettingsItem? institutionSettings,
+  ) async {
+    try {
+      await _documentPrintService.printPaymentVoucher(
+        expense: item,
+        institutionSettings: institutionSettings,
+      );
+      _showMessage('تم فتح سند الصرف للطباعة.');
+    } catch (error) {
+      _showMessage('تعذر إنشاء سند الصرف: $error');
+    }
+  }
+
+  Future<void> _printJournalVoucher(
+    ExpenseItem item,
+    InstitutionSettingsItem? institutionSettings,
+  ) async {
+    try {
+      await _documentPrintService.printJournalVoucher(
+        expense: item,
+        institutionSettings: institutionSettings,
+      );
+      _showMessage('تم فتح مستند القيد للطباعة.');
+    } catch (error) {
+      _showMessage('تعذر إنشاء مستند القيد: $error');
+    }
   }
 
   void _applyFilters() {
@@ -926,12 +979,16 @@ class _ExpensesDataSource extends DataGridSource {
     required this.items,
     required this.formatter,
     required this.onAttachments,
+    required this.onPrintPaymentVoucher,
+    required this.onPrintJournalVoucher,
     this.onCancel,
   });
 
   final List<ExpenseItem> items;
   final NumberFormat formatter;
   final Future<void> Function(ExpenseItem item) onAttachments;
+  final Future<void> Function(ExpenseItem item) onPrintPaymentVoucher;
+  final Future<void> Function(ExpenseItem item) onPrintJournalVoucher;
   final Future<void> Function(ExpenseItem item)? onCancel;
 
   @override
@@ -986,6 +1043,10 @@ class _ExpensesDataSource extends DataGridSource {
                 switch (value) {
                   case _ExpenseAction.attachments:
                     onAttachments(item);
+                  case _ExpenseAction.paymentVoucher:
+                    onPrintPaymentVoucher(item);
+                  case _ExpenseAction.journalVoucher:
+                    onPrintJournalVoucher(item);
                   case _ExpenseAction.cancel:
                     onCancel?.call(item);
                 }
@@ -994,6 +1055,20 @@ class _ExpensesDataSource extends DataGridSource {
                 const PopupMenuItem(
                   value: _ExpenseAction.attachments,
                   child: _ActionLabel(icon: Icons.attach_file, label: 'مرفقات'),
+                ),
+                const PopupMenuItem(
+                  value: _ExpenseAction.paymentVoucher,
+                  child: _ActionLabel(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'طباعة سند صرف',
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _ExpenseAction.journalVoucher,
+                  child: _ActionLabel(
+                    icon: Icons.account_balance_outlined,
+                    label: 'طباعة مستند قيد',
+                  ),
                 ),
                 if (item.expenseStatus != 'cancelled' && onCancel != null)
                   const PopupMenuItem(
@@ -1013,7 +1088,7 @@ class _ExpensesDataSource extends DataGridSource {
   }
 }
 
-enum _ExpenseAction { attachments, cancel }
+enum _ExpenseAction { attachments, paymentVoucher, journalVoucher, cancel }
 
 class _ActionLabel extends StatelessWidget {
   const _ActionLabel({required this.icon, required this.label});

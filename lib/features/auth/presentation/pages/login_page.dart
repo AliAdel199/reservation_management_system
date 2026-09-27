@@ -76,7 +76,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            'مرحبًا بك في نظام إدارة الحجز المالي\nتم التطوير بواسطة المبرمج علي عادل',
+                            'مرحبًا بك في نظام إدارة الحجز المالي\n${AppConstants.copyrightNotice}',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Colors.white.withValues(alpha: 0.85),

@@ -34,11 +34,19 @@ class LicenseStatus {
   final String? customer;
   final DateTime? expiresAt;
 
+  static const _developer = 'Ali Adel (DuraTec)';
+  static const _copyright = '© 2026 Ali Adel (DuraTec). All rights reserved.';
+  static const _productName =
+      'Government Financial Reservation Management System';
+
   Map<String, dynamic> toJson() => {
     'enforced': enforced,
     'valid': valid,
     'message': message,
     'code': code,
+    'product_name': _productName,
+    'developer': _developer,
+    'copyright': _copyright,
     'customer': customer,
     'expires_at': expiresAt?.toIso8601String(),
     ...fingerprint.toJson(),
@@ -46,12 +54,35 @@ class LicenseStatus {
 }
 
 class LicenseService {
-  const LicenseService(this._config);
+  LicenseService(this._config);
+
+  // تعليق عربي: الفحص كان يشغّل reg.exe ويتحقق من توقيع RSA مع كل طلب HTTP.
+  // نحسب البصمة مرة واحدة، ونعيد استخدام نتيجة الفحص لمدة قصيرة.
+  static const _statusCacheDuration = Duration(minutes: 5);
 
   final AppConfig _config;
+  Future<LicenseFingerprint>? _fingerprint;
+  LicenseStatus? _cachedStatus;
+  DateTime? _cachedAt;
 
-  Future<LicenseStatus> checkStatus() async {
-    final fingerprint = await buildFingerprint();
+  Future<LicenseStatus> checkStatus({bool refresh = false}) async {
+    final cachedStatus = _cachedStatus;
+    final cachedAt = _cachedAt;
+    if (!refresh &&
+        cachedStatus != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _statusCacheDuration) {
+      return cachedStatus;
+    }
+
+    final status = await _evaluateStatus();
+    _cachedStatus = status;
+    _cachedAt = DateTime.now();
+    return status;
+  }
+
+  Future<LicenseStatus> _evaluateStatus() async {
+    final fingerprint = await (_fingerprint ??= buildFingerprint());
 
     if (!_config.licenseEnforcementEnabled) {
       return LicenseStatus(

@@ -2,6 +2,7 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf/shelf.dart';
 
 import '../models/app_exception.dart';
+import '../models/request_user.dart';
 import '../services/jwt_service.dart';
 import 'request_context_keys.dart';
 
@@ -22,6 +23,11 @@ Middleware authMiddleware(JwtService jwtService) {
 
       try {
         final requestUser = jwtService.verifyToken(token);
+        // تعليق عربي: إن كان sessionUserMiddleware قد حمّل المستخدم من القاعدة نستخدم بياناته الحديثة.
+        final sessionUser = request.context[requestUserContextKey];
+        if (sessionUser is RequestUser && sessionUser.id == requestUser.id) {
+          return await innerHandler(request);
+        }
         final enrichedRequest = request.change(
           context: {...request.context, requestUserContextKey: requestUser},
         );

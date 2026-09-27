@@ -128,4 +128,10 @@ class FundingsController extends AsyncNotifier<FundingsState> {
     await refresh();
     ref.invalidate(fundingsLookupProvider);
   }
+
+  Future<void> transferAllocation(Map<String, dynamic> payload) async {
+    await _repository.transferAllocation(payload);
+    await refresh();
+    ref.invalidate(fundingsLookupProvider);
+  }
 }

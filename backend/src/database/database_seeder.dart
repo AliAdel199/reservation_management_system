@@ -102,6 +102,13 @@ class DatabaseSeeder {
     if (existingAdmin.isNotEmpty) {
       final existingId = existingAdmin.first[0].toString();
 
+      // تعليق عربي: سابقاً كانت كلمة مرور المدير تُعاد لقيمة .env مع كل تشغيل للخادم،
+      // فيضيع أي تغيير لها من داخل النظام. الآن لا نلمس الحساب إلا بطلب صريح.
+      if (!_config.resetDefaultAdminPassword) {
+        _logger.info('Default admin already exists — credentials left unchanged.');
+        return;
+      }
+
       // Update existing admin to match configured defaults (safe to re-run)
       final roleId = await _authRepository.findRoleIdByCode(
         session,
@@ -131,7 +138,10 @@ class DatabaseSeeder {
         },
       );
 
-      _logger.info('Default admin already existed — updated credentials.');
+      _logger.warning(
+        'Default admin credentials were reset from .env (RESET_ADMIN_PASSWORD=true). '
+        'Set it back to false.',
+      );
       return;
     }
 

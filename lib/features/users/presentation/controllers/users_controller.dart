@@ -27,6 +27,10 @@ final userRolesProvider = FutureProvider<List<UserRoleItem>>(
   (ref) => ref.watch(usersRepositoryProvider).fetchRoles(),
 );
 
+final permissionCatalogProvider = FutureProvider<List<PermissionItem>>(
+  (ref) => ref.watch(usersRepositoryProvider).fetchPermissions(),
+);
+
 final usersControllerProvider =
     AsyncNotifierProvider<UsersController, UsersState>(UsersController.new);
 
